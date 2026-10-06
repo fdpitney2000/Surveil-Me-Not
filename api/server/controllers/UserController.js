@@ -20,6 +20,7 @@ const {
   deleteAllSharedLinksWithCleanup,
   revokeUserCodeEnvironmentWorkers,
   finalizeMCPAuthorizationMutation,
+  deleteUserSurvielKeys,
 } = require('@librechat/api');
 const { Tools, Constants, FileSources, ResourceType } = require('librechat-data-provider');
 const { updateUserPluginAuth, deleteUserPluginAuth } = require('~/server/services/PluginService');
@@ -534,6 +535,14 @@ const deleteUserController = async (req, res) => {
     await db.deletePasskeysByUser(user.id);
     await db.deleteTransactions({ user: user.id });
     await db.deleteUserKey({ userId: user.id, all: true });
+    try {
+      await deleteUserSurvielKeys({ db, userId: user.id, rawConfig: appConfig?.surviel });
+    } catch (error) {
+      logger.warn(
+        '[Surviel] Failed to delete OpenRouter keys during account deletion:',
+        error?.message ?? error,
+      );
+    }
     await db.deleteBalances({ user: user._id });
     await db.deletePresets(user.id);
     await deleteUserPluginAuth(user.id, null, true);

@@ -3910,8 +3910,7 @@ export const survielConfigSchema = z
       },
     ]),
   })
-  .strict()
-  .optional();
+  .strict();
 
 export type TSurvielConfig = z.infer<typeof survielConfigSchema>;
 
@@ -4132,7 +4131,7 @@ export const configSchema = z.object({
     .default({}),
   balance: balanceSchema.optional(),
   transactions: transactionsSchema.optional(),
-  surviel: survielConfigSchema,
+  surviel: survielConfigSchema.optional(),
   speech: z
     .object({
       tts: ttsSchema.optional(),
