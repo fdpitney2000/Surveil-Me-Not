@@ -2040,6 +2040,14 @@ export const endpointSchema = baseEndpointSchema.merge(
     }),
     iconURL: z.string().optional(),
     modelDisplayLabel: z.string().optional(),
+    /** One-line description of the endpoint shown in the model picker. */
+    description: z.string().optional(),
+    /**
+     * Hides the "provide your own API key" prompt for an endpoint whose key is
+     * provisioned server-side into the encrypted user-key store. The server still
+     * performs the per-user key lookup when `apiKey` is `user_provided`.
+     */
+    hideUserProvidedKey: z.boolean().optional(),
     /**
      * Forces the endpoint to use a provider's native client / request format
      * instead of the default OpenAI-compatible client. Currently supports
@@ -3838,6 +3846,75 @@ export const toolCallPreviewsConfigSchema = z.object({
 
 export type TToolCallPreviewsConfig = z.infer<typeof toolCallPreviewsConfigSchema>;
 
+/** One privacy tier, mapped to a custom endpoint by name. */
+export const survielTierSchema = z
+  .object({
+    /** Tier number, 1..3. */
+    tier: z.number().int().min(1).max(3),
+    /** Custom endpoint name exactly as declared in `endpoints.custom`. */
+    endpoint: z.string().min(1),
+    /** One-line guarantee shown next to the endpoint in the UI. */
+    description: z.string().min(1),
+  })
+  .strict();
+
+export type TSurvielTier = z.infer<typeof survielTierSchema>;
+
+/**
+ * Surviel-Me-Not hosted-subscription configuration. All levers are optional and default to
+ * behavior that leaves a stock deployment untouched (`enabled: false`). Secrets never live
+ * here; only non-secret levers.
+ */
+export const survielConfigSchema = z
+  .object({
+    /** Master switch. When false, none of the subscription/credit behavior is active. */
+    enabled: z.boolean().default(false),
+    /** Periodic reconciler interval in milliseconds. */
+    reconcileIntervalMs: z.number().int().min(15_000).default(120_000),
+    /** Model-pricing cache TTL in milliseconds. */
+    pricingTtlMs: z.number().int().min(60_000).default(3_600_000),
+    /** Remaining-USD threshold below which the UI warns and the low-balance guard applies. */
+    lowBalanceThresholdUsd: z.number().nonnegative().default(5),
+    /** Days after a failed payment before keys are disabled. */
+    graceDays: z.number().int().min(0).default(3),
+    /** Fraction of the plan price granted as monthly credits. */
+    creditGrantRatio: z.number().min(0).max(1).default(0.9),
+    /** How the shared pool is applied across the three per-tier keys. */
+    keyLimitMode: z.enum(['allocate', 'duplicate']).default('allocate'),
+    /** Coarse per-key guardrail budget backstop in USD (calendar-month reset). */
+    guardrailBackstopUsd: z.number().positive().default(180),
+    /** Warn this many days before the OpenRouter management key expires. */
+    mgmtKeyWarnDays: z.number().int().positive().default(14),
+    /** Maximum `max_tokens` applied when remaining credits are low. */
+    maxTokensCap: z.number().int().positive().default(4096),
+    /** Remaining-USD threshold below which `maxTokensCap` is enforced. */
+    maxTokensCapThresholdUsd: z.number().nonnegative().default(2),
+    /** Enable the optional server-side injection proxy (defense in depth). */
+    proxyEnabled: z.boolean().default(false),
+    /** The three tier definitions, mapped to custom endpoints by name. */
+    tiers: z.array(survielTierSchema).default([
+      {
+        tier: 1,
+        endpoint: 'Max Model Selection',
+        description: 'Full OpenRouter catalog. No privacy filtering on requests.',
+      },
+      {
+        tier: 2,
+        endpoint: 'Commercial Privacy',
+        description: 'Routes only to providers that do not collect or train on your data.',
+      },
+      {
+        tier: 3,
+        endpoint: 'Enterprise Vault',
+        description: 'Zero Data Retention enforced; routes only to ZDR endpoints.',
+      },
+    ]),
+  })
+  .strict()
+  .optional();
+
+export type TSurvielConfig = z.infer<typeof survielConfigSchema>;
+
 export const configSchema = z.object({
   version: z.string(),
   permissions: z.object({ maxWriteAttempts: permissionWriteAttemptsSchema }).optional(),
@@ -4055,6 +4132,7 @@ export const configSchema = z.object({
     .default({}),
   balance: balanceSchema.optional(),
   transactions: transactionsSchema.optional(),
+  surviel: survielConfigSchema,
   speech: z
     .object({
       tts: ttsSchema.optional(),

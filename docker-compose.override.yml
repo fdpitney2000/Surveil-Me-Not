@@ -1,0 +1,11 @@
+# Surviel-Me-Not local overrides. Docker Compose auto-applies this file on top of
+# docker-compose.yml, so the upstream file stays untouched and upstream merges stay easy.
+#
+# Inject the project's .env into the api container directly. The api service also mounts
+# ./.env at /app/.env and loads it via dotenv, but `env_file` makes the Surviel secrets and
+# levers available before dotenv runs. Explicit `environment:` entries in docker-compose.yml
+# still win over `env_file`, so MONGO_URI etc. keep their in-network values.
+services:
+  api:
+    env_file:
+      - .env

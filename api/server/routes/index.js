@@ -43,10 +43,12 @@ const user = require('./user');
 const mcp = require('./mcp');
 const rum = require('./rum');
 const insights = require('./insights');
+const surviel = require('./surviel');
 
 module.exports = {
   insights,
   rum,
+  surviel,
   mcp,
   auth,
   adminAuth,

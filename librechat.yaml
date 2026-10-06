@@ -1,0 +1,70 @@
+version: 1.3.17
+cache: true
+
+# Surviel-Me-Not privacy tiers. Each tier is a custom endpoint whose requests are
+# routed through OpenRouter. Per-user keys are provisioned server-side into the
+# encrypted key store (apiKey: user_provided) and are never shown to the client
+# (hideUserProvidedKey: true). Choosing the endpoint chooses the tier.
+surviel:
+  enabled: true
+  # The three tier definitions. Defaults exist in code; declared here for clarity.
+  tiers:
+    - tier: 1
+      endpoint: 'Max Model Selection'
+      description: 'Full OpenRouter catalog. No privacy filtering on requests.'
+    - tier: 2
+      endpoint: 'Commercial Privacy'
+      description: 'Routes only to providers that do not collect or train on your data.'
+    - tier: 3
+      endpoint: 'Enterprise Vault'
+      description: 'Zero Data Retention enforced; routes only to ZDR endpoints.'
+
+endpoints:
+  custom:
+    - name: 'Max Model Selection'
+      apiKey: 'user_provided'
+      hideUserProvidedKey: true
+      baseURL: 'https://openrouter.ai/api/v1'
+      description: 'Full OpenRouter catalog. No privacy filtering on requests.'
+      models:
+        default:
+          - 'openai/gpt-4o-mini'
+        fetch: true
+      titleConvo: true
+      titleModel: 'openai/gpt-4o-mini'
+      modelDisplayLabel: 'Max Model Selection'
+
+    - name: 'Commercial Privacy'
+      apiKey: 'user_provided'
+      hideUserProvidedKey: true
+      baseURL: 'https://openrouter.ai/api/v1'
+      description: 'Routes only to providers that do not collect or train on your data.'
+      models:
+        default:
+          - 'openai/gpt-4o-mini'
+        fetch: true
+      titleConvo: true
+      titleModel: 'openai/gpt-4o-mini'
+      modelDisplayLabel: 'Commercial Privacy'
+      # Server-side guarantee: only providers that do not collect/train on data.
+      addParams:
+        provider:
+          data_collection: 'deny'
+
+    - name: 'Enterprise Vault'
+      apiKey: 'user_provided'
+      hideUserProvidedKey: true
+      baseURL: 'https://openrouter.ai/api/v1'
+      description: 'Zero Data Retention enforced; routes only to ZDR endpoints.'
+      models:
+        default:
+          - 'openai/gpt-4o-mini'
+        fetch: true
+      titleConvo: true
+      titleModel: 'openai/gpt-4o-mini'
+      modelDisplayLabel: 'Enterprise Vault'
+      # Server-side guarantee: Zero Data Retention plus no data collection.
+      addParams:
+        provider:
+          zdr: true
+          data_collection: 'deny'

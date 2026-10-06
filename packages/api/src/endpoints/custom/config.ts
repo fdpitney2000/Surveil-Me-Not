@@ -35,6 +35,8 @@ export function loadCustomEndpointsConfig(
         name: configName,
         iconURL,
         modelDisplayLabel,
+        description,
+        hideUserProvidedKey,
         customParams,
         provider,
       } = endpoint;
@@ -57,12 +59,19 @@ export function loadCustomEndpointsConfig(
           ? { ...customParams, defaultParamsEndpoint: provider }
           : customParams;
 
+      const userProvidesKey = isUserProvided(resolvedApiKey) || userProvideURL;
+
       customEndpointsConfig[name] = {
         type: EModelEndpoint.custom,
-        userProvide: isUserProvided(resolvedApiKey) || userProvideURL,
+        /**
+         * A server-managed endpoint can still use `user_provided` for the
+         * per-user encrypted lookup while hiding the client prompt.
+         */
+        userProvide: hideUserProvidedKey === true ? false : userProvidesKey,
         userProvideURL,
         customParams: resolvedCustomParams,
         modelDisplayLabel,
+        description,
         iconURL,
         providerId: resolveEndpointProviderId({
           name,

@@ -1685,3 +1685,35 @@ endpoints:
 # ACL writes retry only conflicts on an individual document.
 # permissions:
 #   maxWriteAttempts: 3 # Integer 1-100, including the first attempt.
+
+#=====================================================================#
+#                        Surviel-Me-Not                               #
+#=====================================================================#
+# Privacy-tiered hosted subscriptions. Each tier is a custom endpoint that
+# routes through OpenRouter; per-user keys are provisioned server-side and
+# never shown to the client. Non-secret levers live here; secrets live in .env.
+# See docs/surviel.md and PLAN.md.
+#
+# surviel:
+#   enabled: true
+#   reconcileIntervalMs: 120000
+#   pricingTtlMs: 3600000
+#   lowBalanceThresholdUsd: 5
+#   graceDays: 3
+#   creditGrantRatio: 0.9
+#   keyLimitMode: allocate
+#   guardrailBackstopUsd: 180
+#   mgmtKeyWarnDays: 14
+#   maxTokensCap: 4096
+#   maxTokensCapThresholdUsd: 2
+#   proxyEnabled: false
+#   tiers:
+#     - tier: 1
+#       endpoint: 'Max Model Selection'
+#       description: 'Full OpenRouter catalog. No privacy filtering on requests.'
+#     - tier: 2
+#       endpoint: 'Commercial Privacy'
+#       description: 'Routes only to providers that do not collect or train on your data.'
+#     - tier: 3
+#       endpoint: 'Enterprise Vault'
+#       description: 'Zero Data Retention enforced; routes only to ZDR endpoints.'

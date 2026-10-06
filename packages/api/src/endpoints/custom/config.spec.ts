@@ -83,3 +83,39 @@ describe('loadCustomEndpointsConfig – user credential prompts', () => {
     );
   });
 });
+
+describe('loadCustomEndpointsConfig – server-managed keys and descriptions', () => {
+  it('hides the client key prompt while keeping the per-user lookup path', () => {
+    const config = loadCustomEndpointsConfig([
+      {
+        ...baseEndpoint,
+        name: 'Enterprise Vault',
+        apiKey: AuthType.USER_PROVIDED,
+        hideUserProvidedKey: true,
+      },
+    ] as unknown as TCustomEndpoints);
+
+    expect(config?.['Enterprise Vault']).toEqual(
+      expect.objectContaining({
+        userProvide: false,
+        userProvideURL: false,
+      }),
+    );
+  });
+
+  it('still prompts when hideUserProvidedKey is not set', () => {
+    const config = loadCustomEndpointsConfig([
+      { ...baseEndpoint, name: 'Manual Key', apiKey: AuthType.USER_PROVIDED },
+    ] as unknown as TCustomEndpoints);
+
+    expect(config?.['Manual Key']?.userProvide).toBe(true);
+  });
+
+  it('surfaces the endpoint description to the client config', () => {
+    const config = loadCustomEndpointsConfig([
+      { ...baseEndpoint, name: 'Tiered', description: 'A one-line guarantee.' },
+    ] as unknown as TCustomEndpoints);
+
+    expect(config?.['Tiered']?.description).toBe('A one-line guarantee.');
+  });
+});
