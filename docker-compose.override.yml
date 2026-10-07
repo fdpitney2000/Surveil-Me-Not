@@ -1,12 +1,11 @@
 # Surviel-Me-Not local overrides. Auto-applied by `docker compose` on top of docker-compose.yml.
 #
-# Builds THIS repo (upstream compose only pulls a prebuilt image) and runs it in an isolated
-# stack: `surveil-*` container names and host port 3082, so an existing `librechat` /
-# `librechat2` stack on 3080/3081 is left alone.
+# Builds THIS repo (upstream compose only pulls a prebuilt image) and runs it under
+# `surveil-*` container names on host port 3080.
 #
 #   docker compose -p surveil up -d --build
 #
-# Then open http://localhost:3082
+# Then open http://localhost:3080
 services:
   api:
     image: surveil-me-not-local
@@ -20,12 +19,12 @@ services:
       - .env
     environment:
       - HOST=0.0.0.0
-      - PORT=3082
-      - DOMAIN_CLIENT=http://localhost:3082
-      - DOMAIN_SERVER=http://localhost:3082
-    # Replace the upstream `${PORT}:${PORT}` mapping so it does not claim 3080.
+      - PORT=3080
+      - DOMAIN_CLIENT=http://localhost:3080
+      - DOMAIN_SERVER=http://localhost:3080
+    # Pin the mapping explicitly (replaces the upstream `${PORT}:${PORT}` value).
     ports: !override
-      - '3082:3082'
+      - '3080:3080'
     volumes:
       - ./librechat.yaml:/app/librechat.yaml:ro
 
