@@ -319,6 +319,17 @@ export async function initializeCustom(
 
   const modelOptions = { ...(model_parameters ?? {}), user: userId };
 
+  /**
+   * When an endpoint enforces a `provider` block through `addParams` (e.g. the Surviel
+   * privacy tiers), strip any user-supplied `provider` or `modelKwargs` so a stored agent
+   * configuration cannot shadow or replace the enforced routing policy.
+   */
+  if (endpointConfig.addParams?.provider != null) {
+    const mutableOptions = modelOptions as Record<string, unknown>;
+    delete mutableOptions.provider;
+    delete mutableOptions.modelKwargs;
+  }
+
   let options: InitializeResultBase;
   if (endpointConfig.provider === EModelEndpoint.anthropic) {
     /** Native Anthropic `/v1/messages` client against the custom baseURL/apiKey.

@@ -114,6 +114,8 @@
     "surviel:openrouter-provision": "node scripts/surviel/openrouter-provision.mjs",
     "surviel:openrouter-deprovision": "node scripts/surviel/openrouter-deprovision.mjs",
     "surviel:openrouter-check-key": "node scripts/surviel/openrouter-check-key.mjs",
+    "surviel:openrouter-refresh-pricing": "node scripts/surviel/openrouter-refresh-pricing.mjs",
+    "surviel:verify-tiers": "node scripts/surviel/verify-tiers.mjs",
     "test:all": "npm run test:client && npm run test:api && npm run test:packages:api && npm run test:packages:data-provider && npm run test:packages:data-schemas",
     "test:turbo": "turbo run test:ci --concurrency=2 --filter=@librechat/frontend --filter=@librechat/client --filter=@librechat/backend --filter=@librechat/api --filter=librechat-data-provider --filter=@librechat/data-schemas",
     "e2e:update": "npm run e2e:prepare && playwright test --config=e2e/playwright.config.local.ts --update-snapshots",

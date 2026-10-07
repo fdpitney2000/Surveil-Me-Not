@@ -65,6 +65,7 @@ const {
   startSurvielReconciler,
   createOpenRouterClientFromEnv,
   resolveSurvielConfig,
+  envManagementKeyExpiryWarning,
 } = require('@librechat/api');
 const { connectDb, indexSync } = require('~/db');
 const {
@@ -240,10 +241,15 @@ const startServer = async () => {
   });
   configureAgentEventRuntime(appConfig?.endpoints?.agents?.eventDriven);
   warnOnUnreachableDeliveryPaths(appConfig);
+  const survielConfig = resolveSurvielConfig(appConfig?.surviel);
+  const survielKeyWarning = envManagementKeyExpiryWarning(survielConfig.mgmtKeyWarnDays);
+  if (survielKeyWarning) {
+    logger.warn(`[Surviel] ${survielKeyWarning.message}`);
+  }
   startSurvielReconciler({
     db: agentEventMethods,
     client: createOpenRouterClientFromEnv(),
-    config: resolveSurvielConfig(appConfig?.surviel),
+    config: survielConfig,
     logger,
   });
   initializeFileStorage(appConfig);

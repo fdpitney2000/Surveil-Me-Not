@@ -1,6 +1,15 @@
 version: 1.3.17
 cache: true
 
+# Privacy hygiene: only the selected tier's OpenRouter endpoint should receive user content.
+# Keep third-party egress off in the UI. Provider keys for these features must also stay unset
+# in .env. See the privacy audit in PLAN.md.
+interface:
+  webSearch: false
+  runCode: false
+  fileSearch: false
+  mcpServers: false
+
 # Surviel-Me-Not privacy tiers. Each tier is a custom endpoint whose requests are
 # routed through OpenRouter. Per-user keys are provisioned server-side into the
 # encrypted key store (apiKey: user_provided) and are never shown to the client
