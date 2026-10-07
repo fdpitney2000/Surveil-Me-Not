@@ -55,16 +55,32 @@ Guardrails (Default Workspace): `surviel:tier1`/`tier2` (spend limit only) and
 ```
 npm ci
 npm run build:data-provider && npm run build:data-schemas && npm run build:api
-docker compose up -d          # uses docker-compose.yml + docker-compose.override.yml
+docker compose -p surveil up -d --build   # isolated stack, http://localhost:3082
 ```
 
-`docker-compose.override.yml` injects `.env` into the api container; the upstream compose file
-is untouched. The app reads `librechat.yaml` (tracked) for the three tier endpoints.
+`docker-compose.override.yml` builds this repo (the upstream compose only pulls a prebuilt
+image), injects `.env`, and runs an isolated `surveil-*` stack on port 3082 so an existing
+`librechat` / `librechat2` stack on 3080/3081 is left alone. The app reads `librechat.yaml`
+(tracked) for the three tier endpoints.
+
+Because Mongo is not published to the host, run admin scripts inside the container:
+
+```
+docker exec surveil-api npm run surviel:openrouter-provision -- <userId>
+docker exec surveil-api npm run surviel:verify-tiers -- <userId>
+```
+
+Stop / wipe:
+
+```
+docker compose -p surveil down       # stop (keeps data)
+docker compose -p surveil down -v    # stop and wipe data
+```
 
 ## 5. Stripe webhook forwarding (manual, separate terminal)
 
 ```
-stripe listen --forward-to localhost:3080/api/surviel/stripe/webhook
+stripe listen --forward-to localhost:3082/api/surviel/stripe/webhook
 ```
 
 Write the CLI signing secret to `.env` (never printed):

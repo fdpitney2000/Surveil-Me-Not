@@ -1,11 +1,45 @@
-# Surviel-Me-Not local overrides. Docker Compose auto-applies this file on top of
-# docker-compose.yml, so the upstream file stays untouched and upstream merges stay easy.
+# Surviel-Me-Not local overrides. Auto-applied by `docker compose` on top of docker-compose.yml.
 #
-# Inject the project's .env into the api container directly. The api service also mounts
-# ./.env at /app/.env and loads it via dotenv, but `env_file` makes the Surviel secrets and
-# levers available before dotenv runs. Explicit `environment:` entries in docker-compose.yml
-# still win over `env_file`, so MONGO_URI etc. keep their in-network values.
+# Builds THIS repo (upstream compose only pulls a prebuilt image) and runs it in an isolated
+# stack: `surveil-*` container names and host port 3082, so an existing `librechat` /
+# `librechat2` stack on 3080/3081 is left alone.
+#
+#   docker compose -p surveil up -d --build
+#
+# Then open http://localhost:3082
 services:
   api:
+    image: surveil-me-not-local
+    container_name: surveil-api
+    # The upstream compose uses ${UID}:${GID}; supply a macOS-safe default when unset.
+    user: '${UID:-501}:${GID:-20}'
+    build:
+      context: .
+      target: node
     env_file:
       - .env
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3082
+      - DOMAIN_CLIENT=http://localhost:3082
+      - DOMAIN_SERVER=http://localhost:3082
+    # Replace the upstream `${PORT}:${PORT}` mapping so it does not claim 3080.
+    ports: !override
+      - '3082:3082'
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml:ro
+
+  mongodb:
+    container_name: surveil-mongodb
+    user: '${UID:-501}:${GID:-20}'
+  meilisearch:
+    container_name: surveil-meilisearch
+    user: '${UID:-501}:${GID:-20}'
+  vectordb:
+    container_name: surveil-vectordb
+  rag_api:
+    container_name: surveil-rag_api
+  admin-panel:
+    # The admin panel is not needed for MVP testing and its default port clashes.
+    profiles: ['admin']
+    container_name: surveil-admin-panel
