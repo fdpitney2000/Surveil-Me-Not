@@ -1,5 +1,12 @@
 import type { AxiosResponse } from 'axios';
 import type {
+  TSurvielCredits,
+  TSurvielPricingResponse,
+  TSurvielCheckoutRequest,
+  TSurvielCheckoutResponse,
+  TSurvielPortalResponse,
+} from './surviel';
+import type {
   TTracePage,
   TTracePageParams,
   TTraceAvailability,
@@ -295,6 +302,33 @@ export function updateUserPreferences(
 
 export function getUserBalance(): Promise<t.TBalanceResponse> {
   return request.get(endpoints.balance());
+}
+
+/* Surviel-Me-Not subscriptions and credits */
+export function getSurvielCredits(): Promise<TSurvielCredits> {
+  return request.get(endpoints.survielCredits());
+}
+
+export function refreshSurvielCredits(): Promise<TSurvielCredits> {
+  return request.post(endpoints.survielCreditsRefresh());
+}
+
+export function getSurvielPricing(): Promise<TSurvielPricingResponse> {
+  return request.get(endpoints.survielPricing());
+}
+
+export function refreshSurvielPricing(): Promise<TSurvielPricingResponse> {
+  return request.post(endpoints.survielPricingRefresh());
+}
+
+export function createSurvielCheckout(
+  payload: TSurvielCheckoutRequest,
+): Promise<TSurvielCheckoutResponse> {
+  return request.post(endpoints.survielCheckout(), payload);
+}
+
+export function createSurvielPortal(): Promise<TSurvielPortalResponse> {
+  return request.post(endpoints.survielPortal());
 }
 
 export const updateTokenCount = (text: string) => {

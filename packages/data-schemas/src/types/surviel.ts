@@ -27,6 +27,8 @@ export interface ISurvielSubscription extends Document {
   grantMicroUsd: number;
   /** Per-tier lifetime usage snapshot captured at period start. */
   snapshotByTier: ISurvielTierUsage;
+  /** Last-known per-tier lifetime usage, refreshed by the reconciler. */
+  usageByTier: ISurvielTierUsage;
   activeTier: number;
   graceUntil?: Date | null;
   flaggedForReview: boolean;

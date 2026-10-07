@@ -1,12 +1,23 @@
 import type { Request, Response } from 'express';
 import type { SurvielWebhookDb, SurvielWebhookLogger } from './stripe/webhook';
+import type { PricingService } from './pricing/service';
+import type { SurvielReconcileDb } from './reconciler';
+import type { ResolvedSurvielConfig } from './config';
 import { createDefaultWebhookDeps, handleStripeWebhook } from './stripe/webhook';
 import { createCheckoutSession, createPortalSession } from './stripe/checkout';
+import { createOpenRouterClientFromEnv } from './openrouter/client';
 import { SurvielError, SurvielErrorCodes } from './errors';
+import { createPricingService } from './pricing/service';
+import { reconcileSubscription } from './reconciler';
 import { createStripeClient } from './stripe/client';
+import { buildCreditsResponse } from './credits';
+import { resolveSurvielConfig } from './config';
 import { resolvePlans } from './plans';
 
 type RequestWithRawBody = Request & { rawBody?: Buffer; user?: { id: string } };
+
+/** The database methods the Surviel routes need. */
+export type SurvielRouteDb = SurvielWebhookDb & SurvielReconcileDb;
 
 function defaultDomain(): string {
   return process.env.DOMAIN_CLIENT ?? 'http://localhost:3080';
@@ -119,5 +130,117 @@ export function createPortalHandler(options: {
       }
       res.status(502).json({ error: SurvielErrorCodes.OPENROUTER_ERROR });
     }
+  };
+}
+
+/** Express handler for `GET /api/surviel/credits`. */
+export function createCreditsHandler(options: {
+  db: SurvielRouteDb;
+  config?: ResolvedSurvielConfig;
+}): (req: Request, res: Response) => Promise<void> {
+  const config = options.config ?? resolveSurvielConfig();
+  return async (req, res) => {
+    const user = (req as RequestWithRawBody).user;
+    if (!user?.id) {
+      res.status(401).json({ error: 'UNAUTHORIZED' });
+      return;
+    }
+    const subscription = await options.db.getSurvielSubscriptionByUser(user.id);
+    res.status(200).json(
+      buildCreditsResponse({
+        subscription,
+        lowBalanceThresholdUsd: config.lowBalanceThresholdUsd,
+      }),
+    );
+  };
+}
+
+/** Express handler for `POST /api/surviel/credits/refresh` (on-demand reconcile). */
+export function createCreditsRefreshHandler(options: {
+  db: SurvielRouteDb;
+  config?: ResolvedSurvielConfig;
+  logger?: SurvielWebhookLogger;
+}): (req: Request, res: Response) => Promise<void> {
+  const config = options.config ?? resolveSurvielConfig();
+  return async (req, res) => {
+    const user = (req as RequestWithRawBody).user;
+    if (!user?.id) {
+      res.status(401).json({ error: 'UNAUTHORIZED' });
+      return;
+    }
+    const subscription = await options.db.getSurvielSubscriptionByUser(user.id);
+    const client = createOpenRouterClientFromEnv();
+    if (subscription && client) {
+      try {
+        await reconcileSubscription({ db: options.db, client, config, subscription });
+      } catch (error) {
+        options.logger?.warn('[Surviel] On-demand reconcile failed:', error);
+      }
+    }
+    const fresh = await options.db.getSurvielSubscriptionByUser(user.id);
+    res.status(200).json(
+      buildCreditsResponse({
+        subscription: fresh,
+        lowBalanceThresholdUsd: config.lowBalanceThresholdUsd,
+      }),
+    );
+  };
+}
+
+/** Lazily create a pricing service from env for the pricing routes. */
+export function createPricingHandlers(options: {
+  config?: ResolvedSurvielConfig;
+  logger?: SurvielWebhookLogger;
+}): {
+  get: (req: Request, res: Response) => Promise<void>;
+  refresh: (req: Request, res: Response) => Promise<void>;
+} {
+  const config = options.config ?? resolveSurvielConfig();
+  let service: PricingService | null = null;
+  const getService = (): PricingService | null => {
+    if (service) return service;
+    const client = createOpenRouterClientFromEnv();
+    if (!client) return null;
+    service = createPricingService({
+      client,
+      ttlMs: config.pricingTtlMs,
+      logger: options.logger,
+    });
+    return service;
+  };
+
+  return {
+    async get(_req, res) {
+      const pricing = getService();
+      if (!pricing) {
+        res.status(200).json({ models: {}, fetchedAt: null });
+        return;
+      }
+      const snapshot = await pricing.get();
+      res
+        .status(200)
+        .json(
+          snapshot
+            ? { models: snapshot.models, fetchedAt: new Date(snapshot.fetchedAt).toISOString() }
+            : { models: {}, fetchedAt: null },
+        );
+    },
+    async refresh(_req, res) {
+      const pricing = getService();
+      if (!pricing) {
+        res.status(503).json({ error: SurvielErrorCodes.NOT_CONFIGURED });
+        return;
+      }
+      try {
+        const snapshot = await pricing.refresh();
+        res.status(200).json({
+          models: snapshot.models,
+          fetchedAt: new Date(snapshot.fetchedAt).toISOString(),
+        });
+      } catch (error) {
+        options.logger?.warn('[Surviel] Manual pricing refresh failed:', error);
+        res.status(502).json({ error: SurvielErrorCodes.OPENROUTER_ERROR });
+      }
+    },
   };
 }

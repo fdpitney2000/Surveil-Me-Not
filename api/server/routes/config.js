@@ -23,6 +23,7 @@ const {
   resolveCodeWorkspaceInheritanceCapability,
   resolveCodeEnvironmentTransitionVersion,
   loadConversationListLimits,
+  resolveSurvielConfig,
 } = require('@librechat/api');
 const {
   DEFAULT_MCP_APP_CSP_LIMITS,
@@ -272,6 +273,12 @@ router.get('/', async function (req, res) {
     const endpointsDropParamsMap = getEndpointsDropParamsMap(appConfig?.endpoints);
 
     const balanceConfig = getBalanceConfig(appConfig);
+    const survielConfig = resolveSurvielConfig(appConfig?.surviel);
+    const survielPayload = {
+      enabled: survielConfig.enabled,
+      lowBalanceThresholdUsd: survielConfig.lowBalanceThresholdUsd,
+      tiers: survielConfig.tiers,
+    };
     const cloudFront = buildCloudFrontStartupConfig();
     const langfuseFanoutEnabled = isLangfuseFanoutEnabled();
     const langfuseConnectionAvailable = isLangfuseConnectionAvailable();
@@ -318,6 +325,7 @@ router.get('/', async function (req, res) {
       turnstile: appConfig?.turnstileConfig,
       modelSpecs: sanitizeModelSpecs(excludeHiddenModelSpecs(appConfig?.modelSpecs)),
       balance: balanceConfig,
+      surviel: survielPayload,
       bundlerURL: process.env.SANDPACK_BUNDLER_URL,
       staticBundlerURL: process.env.SANDPACK_STATIC_BUNDLER_URL,
       sharePointFilePickerEnabled,

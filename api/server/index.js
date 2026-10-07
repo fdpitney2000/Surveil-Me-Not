@@ -62,6 +62,9 @@ const {
   waitForKeyvRedisClient,
   warnOnUnreachableDeliveryPaths,
   createCodeApiUploadRegistry,
+  startSurvielReconciler,
+  createOpenRouterClientFromEnv,
+  resolveSurvielConfig,
 } = require('@librechat/api');
 const { connectDb, indexSync } = require('~/db');
 const {
@@ -237,6 +240,12 @@ const startServer = async () => {
   });
   configureAgentEventRuntime(appConfig?.endpoints?.agents?.eventDriven);
   warnOnUnreachableDeliveryPaths(appConfig);
+  startSurvielReconciler({
+    db: agentEventMethods,
+    client: createOpenRouterClientFromEnv(),
+    config: resolveSurvielConfig(appConfig?.surviel),
+    logger,
+  });
   initializeFileStorage(appConfig);
   const projectRoot = path.resolve(__dirname, '../..');
   // Plugin hooks execute only when the operator opts in via DEPLOYMENT_PLUGIN_HOOKS;

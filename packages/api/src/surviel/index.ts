@@ -70,5 +70,28 @@ export type {
   SurvielWebhookLogger,
   ApplyResult,
 } from './stripe/webhook';
+/* Usage, reconciler, credits, pricing */
+export { fetchUserUsage, tierFromKeyName } from './openrouter/usage';
+export type { UserUsage, UserKeyUsage } from './openrouter/usage';
+export {
+  reconcileSubscription,
+  reconcileAll,
+  startSurvielReconciler,
+  isSubscriptionUsable,
+  chooseActiveTier,
+} from './reconciler';
+export type { SurvielReconcileDb, ReconcileSummary } from './reconciler';
+export { buildCreditsResponse } from './credits';
+export type { CreditsResponse } from './credits';
+export { createPricingService } from './pricing/service';
+export type { PricingService, PricingSnapshot, ModelPrice } from './pricing/service';
 /* Routes */
-export { createStripeWebhookHandler, createCheckoutHandler, createPortalHandler } from './routes';
+export {
+  createStripeWebhookHandler,
+  createCheckoutHandler,
+  createPortalHandler,
+  createCreditsHandler,
+  createCreditsRefreshHandler,
+  createPricingHandlers,
+} from './routes';
+export type { SurvielRouteDb } from './routes';

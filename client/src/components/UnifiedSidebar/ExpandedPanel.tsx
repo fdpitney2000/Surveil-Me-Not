@@ -13,6 +13,7 @@ import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 
 const AccountSettings = lazyWithRecovery(() => import('~/components/Nav/AccountSettings'));
+const CreditsWidget = lazyWithRecovery(() => import('~/components/Surviel/CreditsWidget'));
 
 const NewChatButton = memo(function NewChatButton({
   setActive,
@@ -194,7 +195,12 @@ function ExpandedPanel({
         ))}
       </div>
 
-      <div className="mt-auto">
+      <div className="mt-auto flex flex-col gap-2">
+        {expanded !== false && (
+          <Suspense fallback={null}>
+            <CreditsWidget />
+          </Suspense>
+        )}
         <Suspense fallback={<Skeleton className="h-9 w-9 rounded-lg" />}>
           <AccountSettings collapsed />
         </Suspense>

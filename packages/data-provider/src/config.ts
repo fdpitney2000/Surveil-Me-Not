@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ZodError } from 'zod';
 import type { TEndpointsConfig, TModelsConfig, TConfig } from './types';
+import type { TSurvielStartupConfig } from './surviel';
 import {
   MAX_SUBAGENTS,
   MAX_SUBAGENTS_CEILING,
@@ -3164,6 +3165,8 @@ export type TStartupConfig = {
   interface?: TInterfaceConfig;
   turnstile?: TTurnstileConfig;
   balance?: TBalanceConfig;
+  /** Surviel-Me-Not subscription/credit configuration exposed to the client. */
+  surviel?: TSurvielStartupConfig;
   transactions?: TTransactionsConfig;
   discordLoginEnabled: boolean;
   facebookLoginEnabled: boolean;

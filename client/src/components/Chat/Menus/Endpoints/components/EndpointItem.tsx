@@ -279,7 +279,14 @@ export function EndpointItem({ endpoint, endpointIndex }: EndpointItemProps) {
           {endpoint.icon}
         </div>
       )}
-      <span className="truncate text-left">{endpoint.label}</span>
+      <div className="flex min-w-0 flex-col">
+        <span className="truncate text-left">{endpoint.label}</span>
+        {endpoint.description && (
+          <span className="text-text-secondary truncate text-left text-xs">
+            {endpoint.description}
+          </span>
+        )}
+      </div>
     </div>
   );
 

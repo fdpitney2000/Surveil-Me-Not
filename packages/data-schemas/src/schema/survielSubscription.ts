@@ -27,6 +27,7 @@ const survielSubscriptionSchema: Schema<ISurvielSubscription> = new Schema<ISurv
     renewsAt: { type: Date },
     grantMicroUsd: { type: Number, default: 0 },
     snapshotByTier: { type: tierUsageSchema, default: () => ({ tier1: 0, tier2: 0, tier3: 0 }) },
+    usageByTier: { type: tierUsageSchema, default: () => ({ tier1: 0, tier2: 0, tier3: 0 }) },
     activeTier: { type: Number, default: 1 },
     graceUntil: { type: Date, default: null },
     flaggedForReview: { type: Boolean, default: false },

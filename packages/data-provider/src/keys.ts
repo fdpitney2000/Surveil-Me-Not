@@ -22,6 +22,8 @@ export enum QueryKeys {
   name = 'name', // user key name
   models = 'models',
   balance = 'balance',
+  survielCredits = 'survielCredits',
+  survielPricing = 'survielPricing',
   endpoints = 'endpoints',
   tokenConfig = 'tokenConfig',
   presets = 'presets',

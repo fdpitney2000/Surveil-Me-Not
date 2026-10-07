@@ -41,6 +41,12 @@ jest.mock('~/hooks', () => ({
   useShowMarketplace: () => false,
 }));
 
+/* The Surviel credits widget is unrelated to nav behavior and needs the full app providers. */
+jest.mock('~/components/Surviel/CreditsWidget', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 /**
  * Stands in for the real hook, which reaches `useNewConvo` by deep path and so
  * escapes the `~/hooks` mock above. Mirrors its contract closely enough that

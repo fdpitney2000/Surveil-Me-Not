@@ -134,6 +134,7 @@ export const useEndpoints = ({
       const result: Endpoint = {
         value: ep,
         label: alternateName[ep] || ep,
+        description: getEndpointField(endpointsConfig, ep, 'description') as string | undefined,
         hasModels,
         icon: createEndpointIcon(ep, resolveProviderIcon({ endpoint: ep, endpointsConfig })),
       };
