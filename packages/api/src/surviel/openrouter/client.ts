@@ -268,9 +268,13 @@ export function createOpenRouterClient(options: CreateOpenRouterClientOptions): 
   };
 }
 
-/** Build a client from `OPENROUTER_MANAGEMENT_KEY`, or undefined when it is unset. */
+/**
+ * Build a client from `OPENROUTER_MANAGEMENT_KEY` (preferred) or the
+ * `OPENROUTER_MANAGEMENT_API_KEY` alias, or undefined when neither is set.
+ */
 export function createOpenRouterClientFromEnv(fetchImpl?: FetchLike): OpenRouterClient | undefined {
-  const managementKey = process.env.OPENROUTER_MANAGEMENT_KEY;
+  const managementKey =
+    process.env.OPENROUTER_MANAGEMENT_KEY ?? process.env.OPENROUTER_MANAGEMENT_API_KEY;
   if (!managementKey) return undefined;
   return createOpenRouterClient({ managementKey, fetchImpl });
 }

@@ -56,6 +56,27 @@ export function envStatus(env, key) {
 }
 
 /**
+ * Variable names that appear only as commented-out assignments (`# KEY=...`), so a user who
+ * pasted a value but left the `#` can be told why it is being ignored. Values are not read.
+ * @param {string} [file]
+ * @returns {Set<string>}
+ */
+export function commentedKeys(file = envPath) {
+  const keys = new Set();
+  let contents;
+  try {
+    contents = readFileSync(file, 'utf8');
+  } catch {
+    return keys;
+  }
+  for (const rawLine of contents.split(/\r?\n/)) {
+    const match = rawLine.match(/^\s*#+\s*([A-Za-z_][A-Za-z0-9_]*)\s*=/);
+    if (match) keys.add(match[1]);
+  }
+  return keys;
+}
+
+/**
  * Insert or replace `KEY=value` in the dotenv file, preserving all other lines.
  * The value is never echoed to stdout.
  * @param {string} key

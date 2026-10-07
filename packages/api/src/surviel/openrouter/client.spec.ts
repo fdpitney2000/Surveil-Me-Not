@@ -1,4 +1,4 @@
-import { createOpenRouterClient } from './client';
+import { createOpenRouterClient, createOpenRouterClientFromEnv } from './client';
 import { SurvielErrorCodes } from '../errors';
 
 const KEY = 'sk-or-v1-management-secret-value';
@@ -77,6 +77,39 @@ describe('createOpenRouterClient', () => {
     await expect(client.getCredits()).rejects.toMatchObject({
       code: SurvielErrorCodes.NOT_CONFIGURED,
     });
+  });
+
+  it('accepts the OPENROUTER_MANAGEMENT_API_KEY alias', () => {
+    const original = {
+      key: process.env.OPENROUTER_MANAGEMENT_KEY,
+      alias: process.env.OPENROUTER_MANAGEMENT_API_KEY,
+    };
+    delete process.env.OPENROUTER_MANAGEMENT_KEY;
+    process.env.OPENROUTER_MANAGEMENT_API_KEY = 'sk-or-v1-alias';
+    try {
+      const client = createOpenRouterClientFromEnv(async () => jsonResponse({ data: [] }));
+      expect(client).toBeDefined();
+    } finally {
+      if (original.key === undefined) delete process.env.OPENROUTER_MANAGEMENT_KEY;
+      else process.env.OPENROUTER_MANAGEMENT_KEY = original.key;
+      if (original.alias === undefined) delete process.env.OPENROUTER_MANAGEMENT_API_KEY;
+      else process.env.OPENROUTER_MANAGEMENT_API_KEY = original.alias;
+    }
+  });
+
+  it('returns undefined when neither management key name is set', () => {
+    const original = {
+      key: process.env.OPENROUTER_MANAGEMENT_KEY,
+      alias: process.env.OPENROUTER_MANAGEMENT_API_KEY,
+    };
+    delete process.env.OPENROUTER_MANAGEMENT_KEY;
+    delete process.env.OPENROUTER_MANAGEMENT_API_KEY;
+    try {
+      expect(createOpenRouterClientFromEnv()).toBeUndefined();
+    } finally {
+      if (original.key !== undefined) process.env.OPENROUTER_MANAGEMENT_KEY = original.key;
+      if (original.alias !== undefined) process.env.OPENROUTER_MANAGEMENT_API_KEY = original.alias;
+    }
   });
 
   it('assigns key hashes to a guardrail', async () => {
