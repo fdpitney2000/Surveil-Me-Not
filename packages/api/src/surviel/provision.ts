@@ -98,6 +98,22 @@ export async function provisionUserKeys(options: {
   return { userId, tiers };
 }
 
+/** Enable or disable every OpenRouter key belonging to a user. Returns the count changed. */
+export async function setUserKeysDisabled(options: {
+  client: OpenRouterClient;
+  userId: string;
+  disabled: boolean;
+}): Promise<{ changed: number }> {
+  const { client, userId, disabled } = options;
+  const prefix = openRouterKeyPrefix(userId);
+  const allKeys = await client.listAllKeys();
+  const mine = allKeys.filter((key) => key.name.startsWith(prefix) && key.disabled !== disabled);
+  for (const key of mine) {
+    await client.updateKey(key.hash, { disabled });
+  }
+  return { changed: mine.length };
+}
+
 /**
  * Delete every OpenRouter key belonging to a user and remove the matching encrypted keys.
  * Best-effort per key so one failure does not strand the rest.

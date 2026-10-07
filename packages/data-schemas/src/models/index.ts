@@ -1,3 +1,8 @@
+import {
+  createSurvielSubscriptionModel,
+  createSurvielPeriodModel,
+  createSurvielEventModel,
+} from './surviel';
 import { createAgentQueuedTurnModel, createAgentQueuedTurnSequenceModel } from './queuedTurn';
 import { createAgentTriggerLaneSequenceModel } from './triggerLaneSequence';
 import { createScheduleModel, createScheduleRunModel } from './schedule';
@@ -65,6 +70,9 @@ export function createModels(mongoose: typeof import('mongoose')): {
   Agent: ReturnType<typeof createAgentModel>;
   AgentApiKey: ReturnType<typeof createAgentApiKeyModel>;
   AgentCategory: ReturnType<typeof createAgentCategoryModel>;
+  SurvielSubscription: ReturnType<typeof createSurvielSubscriptionModel>;
+  SurvielPeriod: ReturnType<typeof createSurvielPeriodModel>;
+  SurvielEvent: ReturnType<typeof createSurvielEventModel>;
   MCPServer: ReturnType<typeof createMCPServerModel>;
   Role: ReturnType<typeof createRoleModel>;
   Action: ReturnType<typeof createActionModel>;
@@ -116,6 +124,9 @@ export function createModels(mongoose: typeof import('mongoose')): {
     Agent: createAgentModel(mongoose),
     AgentApiKey: createAgentApiKeyModel(mongoose),
     AgentCategory: createAgentCategoryModel(mongoose),
+    SurvielSubscription: createSurvielSubscriptionModel(mongoose),
+    SurvielPeriod: createSurvielPeriodModel(mongoose),
+    SurvielEvent: createSurvielEventModel(mongoose),
     MCPServer: createMCPServerModel(mongoose),
     Role: createRoleModel(mongoose),
     Action: createActionModel(mongoose),

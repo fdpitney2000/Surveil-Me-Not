@@ -339,6 +339,8 @@ const startServer = async () => {
   app.use('/api/agents/chat', agentStartupIngressMiddleware);
   app.use(metricsMiddleware);
   app.use(noIndex);
+  /* Capture the raw Stripe webhook body before the global JSON parser consumes it. */
+  app.use('/api/surviel/stripe/webhook', express.raw({ type: 'application/json' }));
   app.use(excludeRumBodyParser(express.json({ limit: '3mb' })));
   app.use(excludeRumBodyParser(express.urlencoded({ extended: true, limit: '3mb' })));
   app.use(handleJsonParseError);

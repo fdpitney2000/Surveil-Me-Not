@@ -30,8 +30,45 @@ export {
   guardrailSpec,
   ZDR_FIELDS,
 } from './openrouter/guardrails';
-export { provisionUserKeys, deprovisionUserKeys } from './provision';
+export { provisionUserKeys, deprovisionUserKeys, setUserKeysDisabled } from './provision';
 export type { SurvielKeyStore, ProvisionResult, ProvisionedTier } from './provision';
 export { deleteUserSurvielKeys } from './deletion';
 export { managementKeyExpiryWarning, envManagementKeyExpiryWarning } from './expiry';
 export type { ExpiryWarning } from './expiry';
+/* Money and period math */
+export {
+  USD_MICRO,
+  usdToMicro,
+  microToUsd,
+  formatUsd,
+  multiplyMicro,
+  percentOfMicro,
+  stripeFeeMicro,
+  grantMicro,
+  netMarginMicro,
+} from './money';
+export {
+  emptyTierUsage,
+  tierUsageFromUsd,
+  totalUsageMicro,
+  periodSpendMicro,
+  remainingMicro,
+  keyLimitMicro,
+  shouldDisableForCredits,
+} from './period';
+export type { TierUsageMicro, KeyLimitMode } from './period';
+/* Plans */
+export { resolvePlans, planForPriceId } from './plans';
+export type { SurvielPlan, PlanKey } from './plans';
+/* Stripe */
+export { assertStripeTestMode, createStripeClient, resolveWebhookSecret } from './stripe/client';
+export { createCheckoutSession, createPortalSession } from './stripe/checkout';
+export { applyStripeEvent, handleStripeWebhook, createDefaultWebhookDeps } from './stripe/webhook';
+export type {
+  StripeWebhookDeps,
+  SurvielWebhookDb,
+  SurvielWebhookLogger,
+  ApplyResult,
+} from './stripe/webhook';
+/* Routes */
+export { createStripeWebhookHandler, createCheckoutHandler, createPortalHandler } from './routes';
