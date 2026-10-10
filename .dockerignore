@@ -13,5 +13,8 @@ librechat*
 Dockerfile*
 docs
 
+# Local Google service-account placeholder (leftover); never ship it in the image
+api/data
+
 # Ignore all hidden files
 .*
