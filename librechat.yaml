@@ -8,7 +8,8 @@ interface:
   webSearch: false
   runCode: false
   fileSearch: false
-  mcpServers: false
+  # MCP is off because no mcpServers are configured; `interface.mcpServers` is an object
+  # (UI policy), not a boolean.
 
 # Surviel-Me-Not privacy tiers. Each tier is a custom endpoint whose requests are
 # routed through OpenRouter. Per-user keys are provisioned server-side into the
