@@ -95,3 +95,6 @@ export {
   createPricingHandlers,
 } from './routes';
 export type { SurvielRouteDb } from './routes';
+/* Landing page */
+export { createLandingHandler } from './landing';
+export type { LandingHandlerOptions } from './landing';

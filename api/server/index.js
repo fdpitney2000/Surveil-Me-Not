@@ -66,6 +66,7 @@ const {
   createOpenRouterClientFromEnv,
   resolveSurvielConfig,
   envManagementKeyExpiryWarning,
+  createLandingHandler,
 } = require('@librechat/api');
 const { connectDb, indexSync } = require('~/db');
 const {
@@ -340,6 +341,11 @@ const startServer = async () => {
     res.send(updatedIndexHtml);
   };
 
+  /* The standalone landing page ships beside the SPA shell. */
+  const sendLandingPage = createLandingHandler({
+    landingFile: path.join(appConfig.paths.dist, 'home.html'),
+  });
+
   app.get('/health', (_req, res) => res.status(200).send('OK'));
   app.get('/livez', (_req, res) => res.status(200).send('OK'));
   app.get('/readyz', (_req, res) => {
@@ -477,6 +483,9 @@ const startServer = async () => {
 
   /** 404 for unmatched API routes */
   app.use('/api', apiNotFound);
+
+  /** Landing page for visitors without a session; signed-in callers fall through to the SPA. */
+  app.get('/', optionalJwtAuth, sendLandingPage);
 
   /** SPA fallback - serve index.html for all unmatched routes */
   app.use(createSpaFallback(sendIndexHtml));

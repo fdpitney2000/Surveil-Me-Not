@@ -8,6 +8,7 @@ import {
   ChevronRight,
   CircleHelp,
   Files,
+  Home,
   Keyboard,
   LifeBuoy,
   LogOut,
@@ -149,6 +150,14 @@ function AccountSettings({ collapsed = false }: { collapsed?: boolean }) {
           privacyPolicyURL={startupConfig?.interface?.privacyPolicy?.externalUrl}
           onShowShortcuts={() => setShowShortcutsDialog(true)}
         />
+        <Menu.MenuItem
+          onClick={() => openInNewTab('home.html')}
+          className="select-item text-sm"
+          data-testid="nav-home"
+        >
+          <Home className="icon-md" aria-hidden="true" />
+          {localize('com_nav_home')}
+        </Menu.MenuItem>
         <Menu.MenuItem onClick={() => setShowArchived(true)} className="select-item text-sm">
           <Archive className="icon-md" aria-hidden="true" />
           {localize('com_nav_archived_chats')}

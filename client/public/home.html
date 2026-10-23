@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Surveil Me Not — Enterprise-grade privacy for individuals accessing AI</title>
+<meta name="description" content="Surveil Me Not is a privacy-first AI platform: enterprise-grade privacy for individuals accessing AI." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2310b981'/%3E%3Cpath d='M16 6.5l7 2.8v5.4c0 4.3-2.9 7.9-7 8.9-4.1-1-7-4.6-7-8.9v-5.4l7-2.8z' fill='none' stroke='%23062e21' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --bg-soft: #171717;
+    --surface: #212121;
+    --border: rgba(255, 255, 255, 0.09);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --text: #ececec;
+    --text-body: #cdcdcd;
+    --text-muted: #999696;
+    --green: #10b981;
+    --green-hover: #0ea472;
+    --green-ink: #062e21;
+    --green-soft: rgba(16, 185, 129, 0.14);
+    --maxw: 1080px;
+    --narrow: 820px;
+    --header-h: 72px;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 4.5rem;
+    scroll-snap-type: y proximity;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: rgba(16, 185, 129, 0.35);
+  }
+
+  a {
+    color: inherit;
+  }
+
+  a:focus-visible,
+  .btn:focus-visible {
+    outline: 2px solid var(--green);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  .skip {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 200;
+    background: var(--green);
+    color: var(--green-ink);
+    padding: 0.6rem 1rem;
+    border-radius: 0 0 8px 0;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .skip:focus {
+    left: 0;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .narrow {
+    max-width: var(--narrow);
+  }
+
+  /* ---------- Header ---------- */
+
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(13, 13, 13, 0.82);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    height: var(--header-h);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    text-decoration: none;
+    color: var(--text);
+  }
+
+  .brand-mark {
+    width: 30px;
+    height: 30px;
+    display: block;
+    flex: none;
+  }
+
+  .brand-name {
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+
+  .site-nav {
+    display: flex;
+    gap: 1.6rem;
+    margin-left: auto;
+  }
+
+  .site-nav a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.92rem;
+    font-weight: 500;
+    transition: color 0.15s ease;
+  }
+
+  .site-nav a:hover {
+    color: var(--text);
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 0.58rem 1.15rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .btn-primary {
+    background: var(--green);
+    color: var(--green-ink);
+  }
+
+  .btn-primary:hover {
+    background: var(--green-hover);
+  }
+
+  .btn-ghost {
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
+
+  .btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  /* ---------- Splash screens ---------- */
+
+  .splash {
+    position: relative;
+    min-height: 100vh;
+    min-height: 100svh;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    scroll-snap-align: start;
+  }
+
+  .splash::before {
+    content: "";
+    position: absolute;
+    top: -25%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70%;
+    height: 80%;
+    background: radial-gradient(closest-side, var(--green-soft), transparent 100%);
+    pointer-events: none;
+  }
+
+  .splash:nth-child(2)::before {
+    left: 10%;
+    transform: none;
+  }
+
+  .splash:nth-child(3)::before {
+    left: auto;
+    right: 5%;
+    transform: none;
+  }
+
+  .splash-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.75rem;
+    padding-top: 4rem;
+    padding-bottom: 7rem;
+  }
+
+  .splash-mark {
+    width: 56px;
+    height: 56px;
+    display: block;
+  }
+
+  .splash-line {
+    margin: 0;
+    max-width: 21ch;
+    font-size: clamp(2.4rem, 6.2vw, 4.6rem);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+    text-wrap: balance;
+  }
+
+  .splash-line .accent {
+    color: var(--green);
+  }
+
+  .splash-meta {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 1.6rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .cue {
+    display: inline-flex;
+    color: var(--text-muted);
+  }
+
+  .cue svg {
+    animation: nudge 1.8s ease-in-out infinite;
+  }
+
+  @keyframes nudge {
+    0%,
+    100% {
+      transform: translateY(-1px);
+      opacity: 0.55;
+    }
+    50% {
+      transform: translateY(3px);
+      opacity: 1;
+    }
+  }
+
+  /* ---------- Main content ---------- */
+
+  .content-header {
+    padding: 7rem 0 1.5rem;
+    text-align: center;
+  }
+
+  .content-title {
+    margin: 0;
+    font-size: clamp(1.9rem, 3.6vw, 2.8rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+  }
+
+  .content-title::after {
+    content: "";
+    display: block;
+    width: 56px;
+    height: 3px;
+    margin: 1.4rem auto 0;
+    border-radius: 2px;
+    background: var(--green);
+  }
+
+  .content-section {
+    padding: 3.25rem 0;
+    scroll-margin-top: 5.5rem;
+  }
+
+  .content-section h3 {
+    margin: 0 0 1.25rem;
+    font-size: clamp(1.5rem, 2.6vw, 1.95rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .content-section p {
+    margin: 0 0 1.15rem;
+    color: var(--text-body);
+    font-size: 1.04rem;
+    line-height: 1.75;
+  }
+
+  .content-section p:last-child {
+    margin-bottom: 0;
+  }
+
+  sup {
+    font-size: 0.68em;
+    line-height: 0;
+  }
+
+  sup a {
+    color: var(--green);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  sup a:hover {
+    text-decoration: underline;
+  }
+
+  /* ---------- Privacy tiers ---------- */
+
+  .tiers {
+    list-style: none;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .tier {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    padding: 1rem 1.25rem;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    border-radius: 12px;
+  }
+
+  .tier:nth-child(2) {
+    border-left-color: rgba(16, 185, 129, 0.55);
+  }
+
+  .tier:nth-child(3) {
+    border-left-color: rgba(255, 255, 255, 0.22);
+  }
+
+  .tier-rank {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--green);
+  }
+
+  .tier:nth-child(3) .tier-rank {
+    color: var(--text-muted);
+  }
+
+  .tier-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.65rem;
+  }
+
+  .tier-name {
+    font-weight: 600;
+  }
+
+  .tier-note {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  /* ---------- Trust logos ---------- */
+
+  .trust {
+    margin-top: 2.75rem;
+    padding: 1.9rem 1.5rem 2.1rem;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    text-align: center;
+  }
+
+  .trust-caption {
+    margin: 0 0 1.6rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .trust-logos {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 2.5rem 3.5rem;
+  }
+
+  .trust-logo {
+    display: inline-flex;
+    align-items: center;
+    opacity: 0.92;
+    transition: opacity 0.15s ease;
+  }
+
+  .trust-logo:hover {
+    opacity: 1;
+  }
+
+  .trust-logo svg {
+    display: block;
+    height: 30px;
+    width: auto;
+  }
+
+  /* ---------- Footnotes ---------- */
+
+  .footnotes {
+    margin-top: 3rem;
+    padding: 2.5rem 0 6rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .footnotes ol {
+    margin: 0;
+    padding-left: 1.4rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.7;
+  }
+
+  .footnotes li + li {
+    margin-top: 0.5rem;
+  }
+
+  /* ---------- Footer ---------- */
+
+  .site-footer {
+    background: var(--bg-soft);
+    border-top: 1px solid var(--border);
+  }
+
+  .footer-inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+
+  .footer-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    max-width: 360px;
+  }
+
+  .footer-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-weight: 700;
+  }
+
+  .footer-tagline {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  .footer-url {
+    color: var(--green);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .footer-url:hover {
+    text-decoration: underline;
+  }
+
+  .footer-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .footer-nav a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+
+  .footer-nav a:hover {
+    color: var(--text);
+  }
+
+  .footer-legal {
+    width: 100%;
+    margin: 1rem 0 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.8rem;
+  }
+
+  /* ---------- Responsive ---------- */
+
+  @media (max-width: 760px) {
+    .site-nav {
+      display: none;
+    }
+
+    .header-actions {
+      margin-left: auto;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .btn-ghost {
+      display: none;
+    }
+
+    .splash-line {
+      max-width: 100%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+      scroll-snap-type: none;
+    }
+
+    .cue svg {
+      animation: none;
+    }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="#top" aria-label="Surveil Me Not home">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="0.75" y="0.75" width="30.5" height="30.5" rx="8.5" fill="#10b981" />
+        <path d="M16 6.5l7 2.8v5.4c0 4.3-2.9 7.9-7 8.9-4.1-1-7-4.6-7-8.9v-5.4l7-2.8z" fill="none" stroke="#062e21" stroke-width="1.8" stroke-linejoin="round" />
+        <circle cx="16" cy="14.4" r="1.5" fill="#062e21" />
+        <path d="M16 16.1v3.1" stroke="#062e21" stroke-width="1.8" stroke-linecap="round" />
+      </svg>
+      <span class="brand-name">Surveil Me Not</span>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="#why">The Why</a>
+      <a href="#what">The What</a>
+      <a href="#how">The How</a>
+    </nav>
+    <div class="header-actions">
+      <a class="btn btn-ghost" href="/login">Sign In</a>
+      <a class="btn btn-primary" href="/register">Sign Up</a>
+    </div>
+  </div>
+</header>
+
+<div id="top" class="splashes">
+  <section class="splash" aria-label="Introduction 1 of 3">
+    <div class="wrap splash-inner">
+      <svg class="splash-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="0.75" y="0.75" width="30.5" height="30.5" rx="8.5" fill="#10b981" />
+        <path d="M16 6.5l7 2.8v5.4c0 4.3-2.9 7.9-7 8.9-4.1-1-7-4.6-7-8.9v-5.4l7-2.8z" fill="none" stroke="#062e21" stroke-width="1.8" stroke-linejoin="round" />
+        <circle cx="16" cy="14.4" r="1.5" fill="#062e21" />
+        <path d="M16 16.1v3.1" stroke="#062e21" stroke-width="1.8" stroke-linecap="round" />
+      </svg>
+      <h1 class="splash-line">ENTERPRISE-GRADE PRIVACY FOR <span class="accent">INDIVIDUALS</span> ACCESSING AI.</h1>
+      <div class="splash-meta">
+        <span class="cue" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" focusable="false">
+            <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <section class="splash" aria-label="Introduction 2 of 3">
+    <div class="wrap splash-inner">
+      <p class="splash-line">Cultivate your best ideas—<span class="accent">without giving them away</span>.</p>
+      <div class="splash-meta">
+        <span class="cue" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" focusable="false">
+            <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <section class="splash" aria-label="Introduction 3 of 3">
+    <div class="wrap splash-inner">
+      <p class="splash-line">Enjoy <span class="accent">true privacy</span>-being marketed to is not part of the contract.</p>
+      <div class="splash-meta">
+        <span class="cue" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" focusable="false">
+            <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<main id="main" class="main">
+  <div class="wrap narrow">
+    <header class="content-header">
+      <h2 class="content-title">Privacy is foundational to humanity and democracy.</h2>
+    </header>
+
+    <section class="content-section" id="why" aria-labelledby="why-title">
+      <h3 id="why-title">The Why</h3>
+      <p>Without a change, surveillance capitalism will continue to railroad the human experience into “raw material for the hidden commercial practices of extraction, prediction, and sales.”<sup><a href="#fn1" id="ref1" aria-label="Footnote 1">1</a></sup></p>
+      <p>Yet AI is also a highly productive tool, which is why our access must be divorced from the surveillance systems with which they are currently bundled.</p>
+      <p>Whether it’s the votes we cast, the products we buy, or just the subconscious decisions we make while viewing commercially-controlled content, at least one thing is certain: without privacy, our future is in the hands of the platforms controlling what we see, don’t see, and everything in between.<sup><a href="#fn2" id="ref2" aria-label="Footnote 2">2</a></sup></p>
+    </section>
+
+    <section class="content-section" id="what" aria-labelledby="what-title">
+      <h3 id="what-title">The What</h3>
+      <p>A privacy-first AI platform (think ChatGPT-interface but with more models to choose from) which democratizes enterprise-grade privacy, giving individual users a level of control previously only available to organizations managing their own AI infrastructure. In addition to each user starting from a place of anonymity (no user info is included in the sessions sent to the AI and search providers), additional controls let you determine if and how your data can be used. Starting with the most restrictive, these include:</p>
+      <ol class="tiers">
+        <li class="tier">
+          <span class="tier-rank" aria-hidden="true">01</span>
+          <span class="tier-body">
+            <span class="tier-name">Zero Data Retention (ZDR)</span>
+            <span class="tier-note">Most restrictive</span>
+          </span>
+        </li>
+        <li class="tier">
+          <span class="tier-rank" aria-hidden="true">02</span>
+          <span class="tier-body">
+            <span class="tier-name">No training on user data</span>
+          </span>
+        </li>
+        <li class="tier">
+          <span class="tier-rank" aria-hidden="true">03</span>
+          <span class="tier-body">
+            <span class="tier-name">No restrictions</span>
+            <span class="tier-note">Still anonymous</span>
+          </span>
+        </li>
+      </ol>
+    </section>
+
+    <section class="content-section" id="how" aria-labelledby="how-title">
+      <h3 id="how-title">The How</h3>
+      <p>Enterprise-grade privacy for AI is well established with platforms like LibreChat, which is trusted by thousands of organizations worldwide including Shopify, Daimler Truck and Boston University. This project is a spinoff of LibreChat with additional customizations for privacy, model selectability, and payment processing. However, the ‘how’ is likely to change, as the pace of change in this industry makes most documentation obsolete by the time it’s published. For instance, since starting this project, Stripe (the payment processor used here) has entered into an agreement to acquire OpenRouter (the LLM model selector also used here) and LibreChat has been acquired by ClickHouse. These changes will either simplify or complicate this project and only time will tell. The ‘how’ that matters most is where there’s a will, there’s a way. Accordingly, an alternative platform using none of the above mentioned is also in development. In the grand scheme of things, making things more private is substantially simpler than managing surveillance systems, so the path to greater privacy is always there once we decide to take it.</p>
+
+      <div class="trust">
+        <p class="trust-caption">Trusted by thousands of organizations worldwide — payments powered by Stripe</p>
+        <div class="trust-logos">
+          <a class="trust-logo" href="https://www.daimlertruck.com" target="_blank" rel="noopener noreferrer" aria-label="Daimler Truck">
+            <svg viewBox="0 0 200 40" role="img" aria-hidden="true" focusable="false">
+              <g transform="translate(20 20)">
+                <circle r="13" fill="none" stroke="#e8e8e8" stroke-width="1.6" />
+                <path d="M0 -13L0 0M0 0L-11.26 6.5M0 0L11.26 6.5" stroke="#e8e8e8" stroke-width="1.6" />
+              </g>
+              <text x="42" y="27" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="600" letter-spacing="0.2" fill="#e8e8e8">Daimler Truck</text>
+            </svg>
+          </a>
+          <a class="trust-logo" href="https://www.bu.edu" target="_blank" rel="noopener noreferrer" aria-label="Boston University">
+            <svg viewBox="0 0 230 40" role="img" aria-hidden="true" focusable="false">
+              <text x="0" y="28" font-family="Georgia, 'Times New Roman', serif" font-size="25" font-weight="700" fill="#cc0000">Boston University</text>
+            </svg>
+          </a>
+          <a class="trust-logo" href="https://stripe.com" target="_blank" rel="noopener noreferrer" aria-label="Stripe">
+            <svg viewBox="0 0 100 32" role="img" aria-hidden="true" focusable="false">
+              <text x="0" y="25" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="-0.8" fill="#635bff">stripe</text>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="footnotes" aria-label="Footnotes">
+      <ol>
+        <li id="fn1">The Age of Surveillance Capitalism, <em>The Fight for a Human Future at the New Frontier of Power</em>, January 2019, Shoshana Zuboff.</li>
+        <li id="fn2">Rule by Technocratic Mind Control: AI Alignment is a Global Psy-Op, Page 17, December 2025, Julian D. Michels, PhD.</li>
+      </ol>
+    </section>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <span class="footer-brand-row">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <rect x="0.75" y="0.75" width="30.5" height="30.5" rx="8.5" fill="#10b981" />
+          <path d="M16 6.5l7 2.8v5.4c0 4.3-2.9 7.9-7 8.9-4.1-1-7-4.6-7-8.9v-5.4l7-2.8z" fill="none" stroke="#062e21" stroke-width="1.8" stroke-linejoin="round" />
+          <circle cx="16" cy="14.4" r="1.5" fill="#062e21" />
+          <path d="M16 16.1v3.1" stroke="#062e21" stroke-width="1.8" stroke-linecap="round" />
+        </svg>
+        Surveil Me Not
+      </span>
+      <p class="footer-tagline">Enterprise-grade privacy for individuals accessing AI</p>
+      <a class="footer-url" href="https://surveil-me-not.com">surveil-me-not.com</a>
+    </div>
+    <nav class="footer-nav" aria-label="Footer">
+      <a href="#why">The Why</a>
+      <a href="#what">The What</a>
+      <a href="#how">The How</a>
+    </nav>
+    <p class="footer-legal">A spinoff of LibreChat. © 2026 Surveil Me Not. All rights reserved.</p>
+  </div>
+</footer>
+</body>
+</html>
