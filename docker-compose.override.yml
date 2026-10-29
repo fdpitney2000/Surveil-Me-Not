@@ -10,6 +10,7 @@ services:
   api:
     image: surveil-me-not-local
     container_name: surveil-api
+    restart: 'no'
     # The upstream compose uses ${UID}:${GID}; supply a macOS-safe default when unset.
     user: '${UID:-501}:${GID:-20}'
     build:
@@ -30,15 +31,20 @@ services:
 
   mongodb:
     container_name: surveil-mongodb
+    restart: 'no'
     user: '${UID:-501}:${GID:-20}'
   meilisearch:
     container_name: surveil-meilisearch
+    restart: 'no'
     user: '${UID:-501}:${GID:-20}'
   vectordb:
     container_name: surveil-vectordb
+    restart: 'no'
   rag_api:
     container_name: surveil-rag_api
+    restart: 'no'
   admin-panel:
     # The admin panel is not needed for MVP testing and its default port clashes.
     profiles: ['admin']
     container_name: surveil-admin-panel
+    restart: 'no'
