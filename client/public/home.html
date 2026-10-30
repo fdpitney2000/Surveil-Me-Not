@@ -33,8 +33,8 @@
 
   html {
     scroll-behavior: smooth;
-    scroll-padding-top: 4.5rem;
-    scroll-snap-type: y proximity;
+    scroll-padding-top: var(--header-h);
+    scroll-snap-type: y mandatory;
     -webkit-text-size-adjust: 100%;
   }
 
@@ -199,6 +199,7 @@
     align-items: center;
     overflow: hidden;
     scroll-snap-align: start;
+    scroll-margin-top: var(--header-h);
   }
 
   .splash::before {
@@ -263,6 +264,26 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    gap: 0.65rem;
+  }
+
+  .splash-progress,
+  .arrival-label {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .splash-progress {
+    position: absolute;
+    right: 0;
+    bottom: 0.15rem;
+  }
+
+  .arrival-label {
+    color: var(--green);
   }
 
   .cue {
@@ -291,6 +312,7 @@
   .content-header {
     padding: 7rem 0 1.5rem;
     text-align: center;
+    scroll-snap-align: start;
   }
 
   .content-title {
@@ -314,6 +336,7 @@
   .content-section {
     padding: 3.25rem 0;
     scroll-margin-top: 5.5rem;
+    scroll-snap-align: start;
   }
 
   .content-section h3 {
@@ -457,6 +480,7 @@
     margin-top: 3rem;
     padding: 2.5rem 0 6rem;
     border-top: 1px solid var(--border);
+    scroll-snap-align: start;
   }
 
   .footnotes ol {
@@ -476,6 +500,7 @@
   .site-footer {
     background: var(--bg-soft);
     border-top: 1px solid var(--border);
+    scroll-snap-align: start;
   }
 
   .footer-inner {
@@ -569,7 +594,7 @@
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
-      scroll-snap-type: none;
+      scroll-snap-type: y proximity;
     }
 
     .cue svg {
@@ -613,39 +638,43 @@
         <circle cx="16" cy="14.4" r="1.5" fill="#062e21" />
         <path d="M16 16.1v3.1" stroke="#062e21" stroke-width="1.8" stroke-linecap="round" />
       </svg>
-      <h1 class="splash-line">ENTERPRISE-GRADE PRIVACY FOR <span class="accent">INDIVIDUALS</span> ACCESSING AI.</h1>
+      <h1 class="splash-line">ENTERPRISE-GRADE PRIVACY FOR <em class="accent">INDIVIDUALS</em> ACCESSING AI.</h1>
       <div class="splash-meta">
         <span class="cue" aria-hidden="true">
           <svg width="18" height="18" viewBox="0 0 16 16" fill="none" focusable="false">
             <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </span>
+        <span class="splash-progress" aria-hidden="true">01 / 03</span>
       </div>
     </div>
   </section>
 
   <section class="splash" aria-label="Introduction 2 of 3">
     <div class="wrap splash-inner">
-      <p class="splash-line">Cultivate your best ideas—<span class="accent">without giving them away</span>.</p>
+      <p class="splash-line">Cultivate your best ideas—<em class="accent">without giving them away</em>.</p>
       <div class="splash-meta">
         <span class="cue" aria-hidden="true">
           <svg width="18" height="18" viewBox="0 0 16 16" fill="none" focusable="false">
             <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </span>
+        <span class="splash-progress" aria-hidden="true">02 / 03</span>
       </div>
     </div>
   </section>
 
   <section class="splash" aria-label="Introduction 3 of 3">
     <div class="wrap splash-inner">
-      <p class="splash-line">Enjoy <span class="accent">true privacy</span>-being marketed to is not part of the contract.</p>
+      <p class="splash-line">Enjoy <em class="accent">true privacy</em>-being marketed to is not part of the contract.</p>
       <div class="splash-meta">
+        <span class="arrival-label">Welcome home</span>
         <span class="cue" aria-hidden="true">
           <svg width="18" height="18" viewBox="0 0 16 16" fill="none" focusable="false">
             <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </span>
+        <span class="splash-progress" aria-hidden="true">03 / 03</span>
       </div>
     </div>
   </section>
@@ -660,7 +689,7 @@
     <section class="content-section" id="why" aria-labelledby="why-title">
       <h3 id="why-title">The Why</h3>
       <p>Without a change, surveillance capitalism will continue to railroad the human experience into “raw material for the hidden commercial practices of extraction, prediction, and sales.”<sup><a href="#fn1" id="ref1" aria-label="Footnote 1">1</a></sup></p>
-      <p>Yet AI is also a highly productive tool, which is why our access must be divorced from the surveillance systems with which they are currently bundled.</p>
+      <p>Yet AI is also a highly productive tool, <em>which is why our access must be divorced from the surveillance systems with which they are currently bundled.</em></p>
       <p>Whether it’s the votes we cast, the products we buy, or just the subconscious decisions we make while viewing commercially-controlled content, at least one thing is certain: without privacy, our future is in the hands of the platforms controlling what we see, don’t see, and everything in between.<sup><a href="#fn2" id="ref2" aria-label="Footnote 2">2</a></sup></p>
     </section>
 
