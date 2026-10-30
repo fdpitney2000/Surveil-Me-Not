@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<script>document.documentElement.classList.add('intro-active');</script>
 <title>Surveil Me Not — Enterprise-grade privacy for individuals accessing AI</title>
 <meta name="description" content="Surveil Me Not is a privacy-first AI platform: enterprise-grade privacy for individuals accessing AI." />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2310b981'/%3E%3Cpath d='M16 6.5l7 2.8v5.4c0 4.3-2.9 7.9-7 8.9-4.1-1-7-4.6-7-8.9v-5.4l7-2.8z' fill='none' stroke='%23062e21' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E" />
@@ -34,7 +35,6 @@
   html {
     scroll-behavior: smooth;
     scroll-padding-top: var(--header-h);
-    scroll-snap-type: y mandatory;
     -webkit-text-size-adjust: 100%;
   }
 
@@ -59,7 +59,8 @@
   }
 
   a:focus-visible,
-  .btn:focus-visible {
+  .btn:focus-visible,
+  summary:focus-visible {
     outline: 2px solid var(--green);
     outline-offset: 2px;
     border-radius: 6px;
@@ -191,6 +192,63 @@
 
   /* ---------- Splash screens ---------- */
 
+  html.intro-active,
+  .intro-active body,
+  html.home-arriving,
+  .home-arriving body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .intro-active .splashes {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    background: var(--bg);
+    touch-action: pinch-zoom;
+  }
+
+  .intro-active .splash {
+    position: absolute;
+    inset: 0;
+    min-height: 100%;
+    align-items: safe center;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .intro-active .splash-inner {
+    position: relative;
+    min-height: 100%;
+    justify-content: center;
+    padding-top: 6.25rem;
+    padding-bottom: 6.25rem;
+  }
+
+  .intro-active .splash:not(.is-active) {
+    visibility: hidden;
+  }
+
+  .intro-active .site-header {
+    visibility: hidden;
+  }
+
+  .is-fragmenting .splash-inner,
+  .site-header.is-fragmenting,
+  .main.is-fragmenting,
+  .site-footer.is-fragmenting {
+    visibility: hidden;
+  }
+
+  .pixel-transition {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 200;
+    pointer-events: none;
+  }
+
   .splash {
     position: relative;
     min-height: 100vh;
@@ -198,8 +256,7 @@
     display: flex;
     align-items: center;
     overflow: hidden;
-    scroll-snap-align: start;
-    scroll-margin-top: var(--header-h);
+    scroll-snap-align: center;
   }
 
   .splash::before {
@@ -226,17 +283,20 @@
   }
 
   .splash-inner {
-    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     gap: 1.75rem;
-    padding-top: 4rem;
-    padding-bottom: 7rem;
+    padding-top: 0;
+    padding-bottom: 0;
   }
 
   .splash-mark {
+    position: absolute;
+    left: 50%;
+    top: var(--mark-top, 1.5rem);
+    transform: translateX(-50%);
     width: 56px;
     height: 56px;
     display: block;
@@ -250,6 +310,7 @@
     letter-spacing: -0.035em;
     line-height: 1.05;
     text-wrap: balance;
+    overflow-wrap: anywhere;
   }
 
   .splash-line .accent {
@@ -278,7 +339,7 @@
 
   .splash-progress {
     position: absolute;
-    right: 0;
+    right: 1.5rem;
     bottom: 0.15rem;
   }
 
@@ -309,8 +370,12 @@
 
   /* ---------- Main content ---------- */
 
+  .main:focus {
+    outline: none;
+  }
+
   .content-header {
-    padding: 7rem 0 1.5rem;
+    padding: 3.5rem 0 1.5rem;
     text-align: center;
     scroll-snap-align: start;
   }
@@ -355,6 +420,54 @@
 
   .content-section p:last-child {
     margin-bottom: 0;
+  }
+
+  .section-more summary {
+    display: flex;
+    align-items: center;
+    width: fit-content;
+    min-height: 44px;
+    padding: 0.35rem 0.6rem;
+    margin-left: -0.6rem;
+    list-style: none;
+    color: var(--green);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .section-more summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .section-more summary:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .section-more > div {
+    padding-top: 0.65rem;
+  }
+
+  .section-more .less-label,
+  .section-more[open] .more-label {
+    display: none;
+  }
+
+  .section-more[open] .less-label {
+    display: inline;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
   }
 
   sup {
@@ -594,7 +707,6 @@
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
-      scroll-snap-type: y proximity;
     }
 
     .cue svg {
@@ -605,29 +717,6 @@
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-
-<header class="site-header">
-  <div class="wrap header-inner">
-    <a class="brand" href="#top" aria-label="Surveil Me Not home">
-      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-        <rect x="0.75" y="0.75" width="30.5" height="30.5" rx="8.5" fill="#10b981" />
-        <path d="M16 6.5l7 2.8v5.4c0 4.3-2.9 7.9-7 8.9-4.1-1-7-4.6-7-8.9v-5.4l7-2.8z" fill="none" stroke="#062e21" stroke-width="1.8" stroke-linejoin="round" />
-        <circle cx="16" cy="14.4" r="1.5" fill="#062e21" />
-        <path d="M16 16.1v3.1" stroke="#062e21" stroke-width="1.8" stroke-linecap="round" />
-      </svg>
-      <span class="brand-name">Surveil Me Not</span>
-    </a>
-    <nav class="site-nav" aria-label="Primary">
-      <a href="#why">The Why</a>
-      <a href="#what">The What</a>
-      <a href="#how">The How</a>
-    </nav>
-    <div class="header-actions">
-      <a class="btn btn-ghost" href="/login">Sign In</a>
-      <a class="btn btn-primary" href="/register">Sign Up</a>
-    </div>
-  </div>
-</header>
 
 <div id="top" class="splashes">
   <section class="splash" aria-label="Introduction 1 of 3">
@@ -680,7 +769,30 @@
   </section>
 </div>
 
-<main id="main" class="main">
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="#main" aria-label="Surveil Me Not home">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="0.75" y="0.75" width="30.5" height="30.5" rx="8.5" fill="#10b981" />
+        <path d="M16 6.5l7 2.8v5.4c0 4.3-2.9 7.9-7 8.9-4.1-1-7-4.6-7-8.9v-5.4l7-2.8z" fill="none" stroke="#062e21" stroke-width="1.8" stroke-linejoin="round" />
+        <circle cx="16" cy="14.4" r="1.5" fill="#062e21" />
+        <path d="M16 16.1v3.1" stroke="#062e21" stroke-width="1.8" stroke-linecap="round" />
+      </svg>
+      <span class="brand-name">Surveil Me Not</span>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="#why">The Why</a>
+      <a href="#what">The What</a>
+      <a href="#how">The How</a>
+    </nav>
+    <div class="header-actions">
+      <a class="btn btn-ghost" href="/login">Sign In</a>
+      <a class="btn btn-primary" href="/register">Sign Up</a>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="main" tabindex="-1">
   <div class="wrap narrow">
     <header class="content-header">
       <h2 class="content-title">Privacy is foundational to humanity and democracy.</h2>
@@ -689,13 +801,22 @@
     <section class="content-section" id="why" aria-labelledby="why-title">
       <h3 id="why-title">The Why</h3>
       <p>Without a change, surveillance capitalism will continue to railroad the human experience into “raw material for the hidden commercial practices of extraction, prediction, and sales.”<sup><a href="#fn1" id="ref1" aria-label="Footnote 1">1</a></sup></p>
+      <details class="section-more">
+        <summary><span class="more-label">More</span><span class="less-label">Less</span><span class="sr-only"> about The Why</span></summary>
+        <div>
       <p>Yet AI is also a highly productive tool, <em>which is why our access must be divorced from the surveillance systems with which they are currently bundled.</em></p>
       <p>Whether it’s the votes we cast, the products we buy, or just the subconscious decisions we make while viewing commercially-controlled content, at least one thing is certain: without privacy, our future is in the hands of the platforms controlling what we see, don’t see, and everything in between.<sup><a href="#fn2" id="ref2" aria-label="Footnote 2">2</a></sup></p>
+        </div>
+      </details>
     </section>
 
     <section class="content-section" id="what" aria-labelledby="what-title">
       <h3 id="what-title">The What</h3>
-      <p>A privacy-first AI platform (think ChatGPT-interface but with more models to choose from) which democratizes enterprise-grade privacy, giving individual users a level of control previously only available to organizations managing their own AI infrastructure. In addition to each user starting from a place of anonymity (no user info is included in the sessions sent to the AI and search providers), additional controls let you determine if and how your data can be used. Starting with the most restrictive, these include:</p>
+      <p>A privacy-first AI platform (think ChatGPT-interface but with more models to choose from) which democratizes enterprise-grade privacy, giving individual users a level of control previously only available to organizations managing their own AI infrastructure.</p>
+      <details class="section-more">
+        <summary><span class="more-label">More</span><span class="less-label">Less</span><span class="sr-only"> about The What</span></summary>
+        <div>
+      <p>In addition to each user starting from a place of anonymity (no user info is included in the sessions sent to the AI and search providers), additional controls let you determine if and how your data can be used. Starting with the most restrictive, these include:</p>
       <ol class="tiers">
         <li class="tier">
           <span class="tier-rank" aria-hidden="true">01</span>
@@ -718,11 +839,17 @@
           </span>
         </li>
       </ol>
+        </div>
+      </details>
     </section>
 
     <section class="content-section" id="how" aria-labelledby="how-title">
       <h3 id="how-title">The How</h3>
-      <p>Enterprise-grade privacy for AI is well established with platforms like LibreChat, which is trusted by thousands of organizations worldwide including Shopify, Daimler Truck and Boston University. This project is a spinoff of LibreChat with additional customizations for privacy, model selectability, and payment processing. However, the ‘how’ is likely to change, as the pace of change in this industry makes most documentation obsolete by the time it’s published. For instance, since starting this project, Stripe (the payment processor used here) has entered into an agreement to acquire OpenRouter (the LLM model selector also used here) and LibreChat has been acquired by ClickHouse. These changes will either simplify or complicate this project and only time will tell. The ‘how’ that matters most is where there’s a will, there’s a way. Accordingly, an alternative platform using none of the above mentioned is also in development. In the grand scheme of things, making things more private is substantially simpler than managing surveillance systems, so the path to greater privacy is always there once we decide to take it.</p>
+      <p>Enterprise-grade privacy for AI is well established with platforms like LibreChat, which is trusted by thousands of organizations worldwide including Shopify, Daimler Truck and Boston University.</p>
+      <details class="section-more">
+        <summary><span class="more-label">More</span><span class="less-label">Less</span><span class="sr-only"> about The How</span></summary>
+        <div>
+      <p>This project is a spinoff of LibreChat with additional customizations for privacy, model selectability, and payment processing. However, the ‘how’ is likely to change, as the pace of change in this industry makes most documentation obsolete by the time it’s published. For instance, since starting this project, Stripe (the payment processor used here) has entered into an agreement to acquire OpenRouter (the LLM model selector also used here) and LibreChat has been acquired by ClickHouse. These changes will either simplify or complicate this project and only time will tell. The ‘how’ that matters most is where there’s a will, there’s a way. Accordingly, an alternative platform using none of the above mentioned is also in development. In the grand scheme of things, making things more private is substantially simpler than managing surveillance systems, so the path to greater privacy is always there once we decide to take it.</p>
 
       <div class="trust">
         <p class="trust-caption">Trusted by thousands of organizations worldwide — payments powered by Stripe</p>
@@ -748,12 +875,14 @@
           </a>
         </div>
       </div>
+        </div>
+      </details>
     </section>
 
     <section class="footnotes" aria-label="Footnotes">
       <ol>
-        <li id="fn1">The Age of Surveillance Capitalism, <em>The Fight for a Human Future at the New Frontier of Power</em>, January 2019, Shoshana Zuboff.</li>
-        <li id="fn2">Rule by Technocratic Mind Control: AI Alignment is a Global Psy-Op, Page 17, December 2025, Julian D. Michels, PhD.</li>
+        <li id="fn1">Rule by Technocratic Mind Control: AI Alignment is a Global Psy-Op, Page 17, December 2025, Julian D. Michels, PhD.</li>
+        <li id="fn2">The Age of Surveillance Capitalism, <em>The Fight for a Human Future at the New Frontier of Power</em>, January 2019, Shoshana Zuboff.</li>
       </ol>
     </section>
   </div>
@@ -782,5 +911,319 @@
     <p class="footer-legal">A spinoff of LibreChat. © 2026 Surveil Me Not. All rights reserved.</p>
   </div>
 </footer>
+<script>
+(() => {
+  'use strict';
+
+  const root = document.documentElement;
+  const intro = document.querySelector('.splashes');
+  const slides = [...intro.querySelectorAll('.splash')];
+  const header = document.querySelector('.site-header');
+  const main = document.querySelector('main');
+  const footer = document.querySelector('.site-footer');
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  // Preserve existing section/footnote URLs; they should not reopen the welcome flow.
+  const initialTarget = document.getElementById(location.hash.slice(1));
+  if (initialTarget && !intro.contains(initialTarget) && initialTarget !== intro) {
+    intro.remove();
+    root.classList.remove('intro-active');
+    requestAnimationFrame(() => {
+      const top = initialTarget.getBoundingClientRect().top + scrollY - header.offsetHeight - 16;
+      window.scrollTo({ top, behavior: 'instant' });
+    });
+    return;
+  }
+  let current = 0;
+  let busy = false;
+  let finished = false;
+  let lastWheel = 0;
+  let wheelX = 0;
+  let wheelY = 0;
+  let wheelConsumed = false;
+  let wheelScrolling = false;
+  let touch = null;
+  let absorbWheelTail = true;
+
+  async function finishIntro(direction = { x: 0, y: -1 }) {
+    intro.remove();
+    root.classList.add('home-arriving');
+    root.classList.remove('intro-active');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    try {
+      await animatePixels([header, main, footer], direction, true);
+    } finally {
+      root.classList.remove('home-arriving');
+      [header, main, footer].forEach((element) => { element.inert = false; });
+      finished = true;
+      main.focus({ preventScroll: true });
+    }
+  }
+
+  // Sample the actual laid-out glyphs, including inline accent colors and wrapping.
+  // This stays local: no screenshot library, remote asset, or per-pixel DOM nodes.
+  async function capturePixels(elements) {
+    const mask = document.createElement('canvas');
+    mask.width = innerWidth;
+    mask.height = innerHeight;
+    const ctx = mask.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return [];
+    const range = document.createRange();
+    const graphics = [];
+    for (const element of elements) {
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        if (!node.textContent.trim() || node.parentElement.closest(
+          'svg, .sr-only, [hidden], details:not([open]) > :not(summary)')) continue;
+        if (node.parentElement.checkVisibility?.() === false) continue;
+        const style = getComputedStyle(node.parentElement);
+        if (style.visibility !== 'visible' || node.parentElement.closest('[hidden]')) continue;
+        ctx.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+        ctx.fillStyle = style.color;
+        ctx.textBaseline = 'alphabetic';
+        const metrics = ctx.measureText('Mg');
+        let offset = 0;
+        for (const character of node.textContent) {
+          range.setStart(node, offset);
+          offset += character.length;
+          range.setEnd(node, offset);
+          if (!character.trim()) continue;
+          const rect = range.getBoundingClientRect();
+          if (!rect.width || rect.bottom < 0 || rect.top > innerHeight) continue;
+          const ascent = metrics.fontBoundingBoxAscent;
+          const descent = metrics.fontBoundingBoxDescent;
+          const baseline = Number.isFinite(ascent)
+            ? rect.top + (rect.height - ascent - descent) / 2 + ascent
+            : rect.bottom - parseFloat(style.fontSize) * 0.2;
+          ctx.fillText(character, rect.left, baseline);
+        }
+      }
+      for (const svg of element.querySelectorAll('svg')) {
+        if (svg.closest('[hidden], details:not([open]) > :not(summary)') || svg.checkVisibility?.() === false) continue;
+        const rect = svg.getBoundingClientRect();
+        if (!rect.width || rect.bottom < 0 || rect.top > innerHeight) continue;
+        const image = new Image();
+        const graphic = svg.cloneNode(true);
+        graphic.style.color = getComputedStyle(svg).color;
+        image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+          new XMLSerializer().serializeToString(graphic));
+        graphics.push(image.decode().then(() => {
+          ctx.drawImage(image, rect.left, rect.top, rect.width, rect.height);
+        }).catch(() => { /* Text particles still work if an SVG cannot be decoded. */ }));
+      }
+    }
+    await Promise.all(graphics);
+    const { data } = ctx.getImageData(0, 0, mask.width, mask.height);
+    const size = innerWidth < 600 ? 5 : 7;
+    const particles = [];
+    for (let y = 0; y < mask.height; y += size) {
+      for (let x = 0; x < mask.width; x += size) {
+        let alpha = 0, red = 0, green = 0, blue = 0;
+        for (let dy = 0; dy < size && y + dy < mask.height; dy++) {
+          for (let dx = 0; dx < size && x + dx < mask.width; dx++) {
+            const i = ((y + dy) * mask.width + x + dx) * 4;
+            const a = data[i + 3] / 255;
+            alpha += a;
+            red += data[i] * a;
+            green += data[i + 1] * a;
+            blue += data[i + 2] * a;
+          }
+        }
+        if (alpha < 0.6) continue;
+        particles.push({ x, y, size, color: `rgb(${Math.round(red / alpha)}, ${Math.round(green / alpha)}, ${Math.round(blue / alpha)})` });
+      }
+    }
+    return particles;
+  }
+
+  async function animatePixels(elements, direction, assemble = false) {
+    if (reducedMotion.matches) return;
+    // Capture all text synchronously, then hide before SVG decoding can yield a paint.
+    // Otherwise the finished page can flash briefly before its assembly begins.
+    const capture = capturePixels(elements);
+    elements.forEach((element) => element.classList.add('is-fragmenting'));
+    const restore = () => elements.forEach((element) => element.classList.remove('is-fragmenting'));
+    let particles;
+    try { particles = await capture; }
+    catch { restore(); return; } // Decorative effects must never block navigation.
+    if (!particles.length) { restore(); return; }
+    const canvas = document.createElement('canvas');
+    canvas.className = 'pixel-transition';
+    canvas.setAttribute('aria-hidden', 'true');
+    const scale = Math.min(devicePixelRatio || 1, 2);
+    canvas.width = Math.round(innerWidth * scale);
+    canvas.height = Math.round(innerHeight * scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { restore(); return; }
+    ctx.scale(scale, scale);
+    const length = Math.hypot(direction.x, direction.y) || 1;
+    const dx = direction.x / length;
+    const dy = direction.y / length;
+    const distance = Math.max(innerHeight * 0.75, 420);
+    particles.forEach((particle) => {
+      const travel = distance * (0.6 + Math.random() * 0.65);
+      const spread = (Math.random() - 0.5) * 220;
+      particle.vx = dx * travel - dy * spread;
+      particle.vy = dy * travel + dx * spread;
+      particle.delay = Math.random() * 0.13;
+    });
+    document.body.append(canvas);
+    const duration = assemble ? 760 : 560;
+    try {
+      await new Promise((resolve) => {
+        const started = performance.now();
+        function frame(now) {
+          const progress = Math.min((now - started) / duration, 1);
+          ctx.clearRect(0, 0, innerWidth, innerHeight);
+          for (const particle of particles) {
+            const t = Math.max(0, Math.min((progress - particle.delay) / (1 - particle.delay), 1));
+            const eased = 1 - Math.pow(1 - t, 3);
+            const displacement = assemble ? eased - 1 : eased;
+            ctx.fillStyle = particle.color;
+            ctx.globalAlpha = assemble ? Math.min(t * 4, 1) : 1 - t * t;
+            const size = particle.size * (assemble ? 0.65 + t * 0.35 : 1 - t * 0.25);
+            ctx.fillRect(particle.x + particle.vx * displacement,
+              particle.y + particle.vy * displacement, size, size);
+          }
+          if (progress < 1 && !reducedMotion.matches) requestAnimationFrame(frame);
+          else resolve();
+        }
+        requestAnimationFrame(frame);
+      });
+    } finally {
+      canvas.remove();
+      restore();
+    }
+  }
+
+  function showSlide(index) {
+    slides.forEach((slide, i) => {
+      slide.classList.toggle('is-active', i === index);
+      slide.inert = i !== index;
+      slide.setAttribute('aria-hidden', String(i !== index));
+    });
+    if (current !== index) slides[index].scrollTop = 0;
+    current = index;
+    const headline = slides[index].querySelector('.splash-line');
+    const top = headline.getBoundingClientRect().top
+      - slides[index].querySelector('.splash-inner').getBoundingClientRect().top;
+    slides[index].style.setProperty('--mark-top', `${Math.max(16, top - 84)}px`);
+  }
+
+  function canScrollMessage(step) {
+    const slide = slides[current];
+    const limit = slide.scrollHeight - slide.clientHeight;
+    return step > 0 ? slide.scrollTop < limit - 1 : slide.scrollTop > 1;
+  }
+
+  async function advance(step, direction) {
+    if (finished || busy) return;
+    const next = current + step;
+    if (next < 0 || next > slides.length) return;
+    busy = true;
+    try {
+      await animatePixels([slides[current]], direction);
+      if (next === slides.length) await finishIntro(direction);
+      else showSlide(next);
+    } finally {
+      busy = false;
+    }
+  }
+
+  function onWheel(event) {
+    if (event.ctrlKey) return;
+    const now = performance.now();
+    if (finished) {
+      // Swallow only the tail of the final trackpad gesture, not the next scroll.
+      if (absorbWheelTail && now - lastWheel < 200) event.preventDefault();
+      else absorbWheelTail = false;
+      lastWheel = now;
+      return;
+    }
+    event.preventDefault();
+    if (now - lastWheel > 200) {
+      wheelX = wheelY = 0;
+      wheelConsumed = false;
+      wheelScrolling = false;
+    }
+    lastWheel = now;
+    if (busy || wheelConsumed) return;
+    const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? innerHeight : 1;
+    if (wheelScrolling || (event.deltaY && canScrollMessage(Math.sign(event.deltaY)))) {
+      slides[current].scrollTop += event.deltaY * unit;
+      wheelScrolling = true;
+      return; // Finish reading an oversized message before a new gesture advances.
+    }
+    wheelX += event.deltaX * unit;
+    wheelY += event.deltaY * unit;
+    if (Math.abs(wheelY) < 45) return;
+    wheelConsumed = true;
+    advance(Math.sign(wheelY), { x: -wheelX, y: -wheelY });
+  }
+
+  function onTouchStart(event) {
+    if (finished || event.touches.length !== 1) {
+      touch = null;
+      return;
+    }
+    touch = { x: event.touches[0].clientX, y: event.touches[0].clientY,
+      lastY: event.touches[0].clientY, scrolling: false, consumed: busy };
+  }
+
+  function onTouchMove(event) {
+    if (!touch || event.touches.length !== 1) return;
+    if (event.cancelable) event.preventDefault();
+    if (finished || touch.consumed || busy) return;
+    const x = event.touches[0].clientX - touch.x;
+    const y = event.touches[0].clientY - touch.y;
+    const movement = event.touches[0].clientY - touch.lastY;
+    touch.lastY = event.touches[0].clientY;
+    if (touch.scrolling || (movement && canScrollMessage(-Math.sign(movement)))) {
+      slides[current].scrollTop -= movement;
+      touch.scrolling = true;
+      return;
+    }
+    if (Math.abs(y) < 45) return;
+    touch.consumed = true;
+    advance(y < 0 ? 1 : -1, { x, y });
+  }
+
+  function onKey(event) {
+    if (finished || event.altKey || event.ctrlKey || event.metaKey || event.repeat) return;
+    const forward = ['ArrowDown', 'PageDown', ' ', 'End'].includes(event.key);
+    const backward = ['ArrowUp', 'PageUp', 'Home'].includes(event.key);
+    if (!forward && !backward) return;
+    event.preventDefault();
+    if (busy) return;
+    const step = backward || (event.key === ' ' && event.shiftKey) ? -1 : 1;
+    if (canScrollMessage(step)) {
+      const slide = slides[current];
+      if (event.key === 'Home') slide.scrollTop = 0;
+      else if (event.key === 'End') slide.scrollTop = slide.scrollHeight;
+      else slide.scrollTop += step * (event.key.startsWith('Arrow') ? 60 : slide.clientHeight * 0.8);
+      return;
+    }
+    advance(step, { x: 0, y: -step });
+  }
+
+  root.classList.add('intro-active');
+  [header, main, footer].forEach((element) => { element.inert = true; });
+  showSlide(0);
+  document.querySelector('.skip').addEventListener('click', async (event) => {
+    if (finished || busy) return;
+    event.preventDefault();
+    busy = true;
+    try { await finishIntro(); }
+    finally { busy = false; }
+  });
+  window.addEventListener('wheel', onWheel, { passive: false });
+  window.addEventListener('touchstart', onTouchStart, { passive: true });
+  window.addEventListener('touchmove', onTouchMove, { passive: false });
+  window.addEventListener('touchend', () => { touch = null; });
+  window.addEventListener('touchcancel', () => { touch = null; });
+  window.addEventListener('keydown', onKey);
+  window.addEventListener('resize', () => { if (!finished) showSlide(current); });
+})();
+</script>
 </body>
 </html>
