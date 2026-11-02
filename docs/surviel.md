@@ -60,7 +60,14 @@ docker compose -p surveil up -d --build   # surveil-* stack, http://localhost:30
 
 `docker-compose.override.yml` builds this repo (the upstream compose only pulls a prebuilt
 image), injects `.env`, and runs a `surveil-*` stack on port 3080. The app reads
-`librechat.yaml` (tracked) for the three tier endpoints.
+`librechat.yaml` (tracked) for the three tier endpoints. Both compose paths mount it
+(`docker-compose.override.yml` for local dev, `deploy-surveil.yml` for prod-mode local
+builds and the VPS) because `.dockerignore` excludes `librechat*` from the image — without
+the mount the app boots with no tier endpoints and `surviel.enabled` is false, which hides
+the credits widget and the Stripe plan picker.
+
+`.env` sets `ENDPOINTS=custom`, so the model menu shows only the three privacy tiers; the
+built-in provider endpoints (OpenAI, Google, Anthropic, Agents, ...) are hidden.
 
 Because Mongo is not published to the host, run admin scripts inside the container:
 

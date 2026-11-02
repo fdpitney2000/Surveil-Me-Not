@@ -48,6 +48,10 @@ services:
       - type: bind
         source: ./.env
         target: /app/.env
+      # .dockerignore excludes librechat* from the image; the tier endpoints and the
+      # surviel config live in this file, so it must be mounted or the app boots
+      # without them (no tiers, no credits widget, no checkout).
+      - ./librechat.yaml:/app/librechat.yaml:ro
       - ./images:/app/client/public/images
       - ./uploads:/app/uploads
       - ./logs:/app/logs

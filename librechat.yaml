@@ -37,11 +37,13 @@ endpoints:
       baseURL: 'https://openrouter.ai/api/v1'
       description: 'Full OpenRouter catalog. No privacy filtering on requests.'
       models:
-        default:
-          - 'openai/gpt-4o-mini'
+        # No static fallback: the catalog is fetched per user with their provisioned
+        # OpenRouter key (guardrail-filtered). Free users get limit-0 keys at
+        # registration, so `:free` models work before any subscription.
         fetch: true
       titleConvo: true
-      titleModel: 'openai/gpt-4o-mini'
+      # Free model so title generation works for unsubscribed (limit-0) users.
+      titleModel: 'google/gemma-4-31b-it:free'
       modelDisplayLabel: 'Max Model Selection'
 
     - name: 'Commercial Privacy'
@@ -50,11 +52,13 @@ endpoints:
       baseURL: 'https://openrouter.ai/api/v1'
       description: 'Routes only to providers that do not collect or train on your data.'
       models:
-        default:
-          - 'openai/gpt-4o-mini'
+        # No static fallback: the catalog is fetched per user with their provisioned
+        # OpenRouter key (guardrail-filtered). Free users get limit-0 keys at
+        # registration, so `:free` models work before any subscription.
         fetch: true
       titleConvo: true
-      titleModel: 'openai/gpt-4o-mini'
+      # Free model so title generation works for unsubscribed (limit-0) users.
+      titleModel: 'google/gemma-4-31b-it:free'
       modelDisplayLabel: 'Commercial Privacy'
       # Server-side guarantee: only providers that do not collect/train on data.
       addParams:
@@ -67,11 +71,13 @@ endpoints:
       baseURL: 'https://openrouter.ai/api/v1'
       description: 'Zero Data Retention enforced; routes only to ZDR endpoints.'
       models:
-        default:
-          - 'openai/gpt-4o-mini'
+        # No static fallback: the catalog is fetched per user with their provisioned
+        # OpenRouter key (guardrail-filtered). Free users get limit-0 keys at
+        # registration, so `:free` models work before any subscription.
         fetch: true
       titleConvo: true
-      titleModel: 'openai/gpt-4o-mini'
+      # Free model so title generation works for unsubscribed (limit-0) users.
+      titleModel: 'google/gemma-4-31b-it:free'
       modelDisplayLabel: 'Enterprise Vault'
       # Server-side guarantee: Zero Data Retention plus no data collection.
       addParams:
