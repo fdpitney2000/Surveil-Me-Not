@@ -5,7 +5,7 @@ import { VisuallyHidden } from '@ariakit/react';
 import { CheckCircle2, EarthIcon, Lock } from 'lucide-react';
 import { isAgentsEndpoint, isAssistantsEndpoint } from 'librechat-data-provider';
 import type { Endpoint } from '~/common';
-import { useSurvielModelAccess } from '~/components/Surviel/modelAccess';
+import { useSurveilModelAccess } from '~/components/Surveil/modelAccess';
 import { useModelSelectorContext } from '../ModelSelectorContext';
 import { CustomMenuItem as MenuItem } from '../CustomMenu';
 import useActiveItem from '../useActiveItem';
@@ -40,13 +40,13 @@ function EndpointModelItemComponent({
 }: EndpointModelItemProps) {
   const localize = useLocalize();
   const { handleSelectModel, selectedValues } = useModelSelectorContext();
-  const survielAccess = useSurvielModelAccess();
-  const isLocked = modelId != null && survielAccess.isLocked(endpoint.value, modelId);
-  const isSurvielFree =
+  const surveilAccess = useSurveilModelAccess();
+  const isLocked = modelId != null && surveilAccess.isLocked(endpoint.value, modelId);
+  const isSurveilFree =
     !isLocked &&
     modelId != null &&
-    survielAccess.isSurvielEndpoint(endpoint.value) &&
-    survielAccess.isFreeModel(modelId);
+    surveilAccess.isSurveilEndpoint(endpoint.value) &&
+    surveilAccess.isFreeModel(modelId);
   const {
     endpoint: selectedEndpoint,
     model: selectedModel,
@@ -120,7 +120,7 @@ function EndpointModelItemComponent({
       aria-disabled={isLocked || undefined}
       aria-posinset={posInSet}
       aria-setsize={setSize}
-      title={isLocked ? localize('com_surviel_model_locked') : undefined}
+      title={isLocked ? localize('com_surveil_model_locked') : undefined}
       className={cn(
         'group flex w-full items-center justify-between rounded-lg px-2 text-sm',
         isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
@@ -129,9 +129,9 @@ function EndpointModelItemComponent({
       <div className="flex w-full min-w-0 items-center gap-2 px-1 py-1">
         {renderAvatar()}
         <span className="truncate">{modelName}</span>
-        {isSurvielFree && (
+        {isSurveilFree && (
           <span className="text-text-secondary shrink-0 text-xs">
-            {localize('com_surviel_free_model')}
+            {localize('com_surveil_free_model')}
           </span>
         )}
         {isGlobal && <EarthIcon className="text-surface-submit ml-1 size-4" />}
@@ -139,7 +139,7 @@ function EndpointModelItemComponent({
       {isLocked && (
         <>
           <Lock className="text-text-secondary size-4 shrink-0" aria-hidden="true" />
-          <VisuallyHidden>{localize('com_surviel_model_locked')}</VisuallyHidden>
+          <VisuallyHidden>{localize('com_surveil_model_locked')}</VisuallyHidden>
         </>
       )}
       <button

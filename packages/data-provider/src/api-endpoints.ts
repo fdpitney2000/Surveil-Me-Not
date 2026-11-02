@@ -46,13 +46,13 @@ export const userPreferences = () => `${user()}/preferences`;
 
 export const balance = () => `${BASE_URL}/api/balance`;
 
-/* Surviel-Me-Not subscriptions and credits */
-export const survielCredits = () => `${BASE_URL}/api/surviel/credits`;
-export const survielCreditsRefresh = () => `${BASE_URL}/api/surviel/credits/refresh`;
-export const survielPricing = () => `${BASE_URL}/api/surviel/pricing`;
-export const survielPricingRefresh = () => `${BASE_URL}/api/surviel/pricing/refresh`;
-export const survielCheckout = () => `${BASE_URL}/api/surviel/checkout`;
-export const survielPortal = () => `${BASE_URL}/api/surviel/portal`;
+/* Surveil-Me-Not subscriptions and credits */
+export const surveilCredits = () => `${BASE_URL}/api/surveil/credits`;
+export const surveilCreditsRefresh = () => `${BASE_URL}/api/surveil/credits/refresh`;
+export const surveilPricing = () => `${BASE_URL}/api/surveil/pricing`;
+export const surveilPricingRefresh = () => `${BASE_URL}/api/surveil/pricing/refresh`;
+export const surveilCheckout = () => `${BASE_URL}/api/surveil/checkout`;
+export const surveilPortal = () => `${BASE_URL}/api/surveil/portal`;
 
 export const userPlugins = () => `${BASE_URL}/api/user/plugins`;
 

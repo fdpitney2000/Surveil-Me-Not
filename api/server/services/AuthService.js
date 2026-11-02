@@ -446,7 +446,7 @@ const registerUser = async (user, additionalData = {}) => {
       await updateUser(newUserId, { emailVerified: true });
     }
 
-    /** Surviel: best-effort limit-0 OpenRouter keys so free users can browse the real
+    /** Surveil: best-effort limit-0 OpenRouter keys so free users can browse the real
      * catalog and use :free models. The module never throws and must stay inside its own
      * try/catch regardless: the outer catch below deletes the just-created account on any
      * error, and a provisioning outage must not cost a registration. */
@@ -454,11 +454,11 @@ const registerUser = async (user, additionalData = {}) => {
       await provisionUserOnRegistration({
         db: keyStore,
         userId: newUserId.toString(),
-        rawConfig: appConfig?.surviel,
+        rawConfig: appConfig?.surveil,
         logger,
       });
     } catch (provisionError) {
-      logger.warn('[registerUser] Surviel key provisioning failed:', provisionError);
+      logger.warn('[registerUser] Surveil key provisioning failed:', provisionError);
     }
 
     /** `userCreated` separates this from the identical 200 returned when the email is

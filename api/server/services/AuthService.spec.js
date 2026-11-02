@@ -716,7 +716,7 @@ describe('registerUser', () => {
     updateUser.mockResolvedValue({ _id: 'new-user-id' });
   });
 
-  it('provisions Surviel keys for the newly created user (best effort)', async () => {
+  it('provisions Surveil keys for the newly created user (best effort)', async () => {
     const result = await registerUser(registrationPayload);
 
     expect(result.status).toBe(200);
@@ -725,7 +725,7 @@ describe('registerUser', () => {
     );
   });
 
-  it('keeps the account when Surviel provisioning throws unexpectedly', async () => {
+  it('keeps the account when Surveil provisioning throws unexpectedly', async () => {
     provisionUserOnRegistration.mockRejectedValueOnce(new Error('unexpected'));
 
     const result = await registerUser(registrationPayload);

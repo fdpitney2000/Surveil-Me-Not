@@ -1,4 +1,4 @@
-# Surviel-Me-Not local overrides. Auto-applied by `docker compose` on top of docker-compose.yml.
+# Surveil-Me-Not local overrides. Auto-applied by `docker compose` on top of docker-compose.yml.
 #
 # Builds THIS repo (upstream compose only pulls a prebuilt image) and runs it under
 # `surveil-*` container names on host port 3080.

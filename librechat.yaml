@@ -11,11 +11,11 @@ interface:
   # MCP is off because no mcpServers are configured; `interface.mcpServers` is an object
   # (UI policy), not a boolean.
 
-# Surviel-Me-Not privacy tiers. Each tier is a custom endpoint whose requests are
+# Surveil-Me-Not privacy tiers. Each tier is a custom endpoint whose requests are
 # routed through OpenRouter. Per-user keys are provisioned server-side into the
 # encrypted key store (apiKey: user_provided) and are never shown to the client
 # (hideUserProvidedKey: true). Choosing the endpoint chooses the tier.
-surviel:
+surveil:
   enabled: true
   # Free users get limit-0 OpenRouter keys at signup so they can browse the real
   # catalog and use :free models; payment raises limits via the reconciler.
@@ -40,9 +40,11 @@ endpoints:
       baseURL: 'https://openrouter.ai/api/v1'
       description: 'Full OpenRouter catalog. No privacy filtering on requests.'
       models:
-        # No static fallback: the catalog is fetched per user with their provisioned
-        # OpenRouter key (guardrail-filtered). Free users get limit-0 keys at
-        # registration, so `:free` models work before any subscription.
+        # Fallback only: the catalog is fetched per user with their provisioned
+        # OpenRouter key (guardrail-filtered). The fallback is a free model so an
+        # unsubscribed (limit-0) user can still call it if the fetch ever fails.
+        default:
+          - 'google/gemma-4-31b-it:free'
         fetch: true
       titleConvo: true
       # Free model so title generation works for unsubscribed (limit-0) users.
@@ -55,9 +57,11 @@ endpoints:
       baseURL: 'https://openrouter.ai/api/v1'
       description: 'Routes only to providers that do not collect or train on your data.'
       models:
-        # No static fallback: the catalog is fetched per user with their provisioned
-        # OpenRouter key (guardrail-filtered). Free users get limit-0 keys at
-        # registration, so `:free` models work before any subscription.
+        # Fallback only: the catalog is fetched per user with their provisioned
+        # OpenRouter key (guardrail-filtered). The fallback is a free model so an
+        # unsubscribed (limit-0) user can still call it if the fetch ever fails.
+        default:
+          - 'google/gemma-4-31b-it:free'
         fetch: true
       titleConvo: true
       # Free model so title generation works for unsubscribed (limit-0) users.
@@ -74,9 +78,11 @@ endpoints:
       baseURL: 'https://openrouter.ai/api/v1'
       description: 'Zero Data Retention enforced; routes only to ZDR endpoints.'
       models:
-        # No static fallback: the catalog is fetched per user with their provisioned
-        # OpenRouter key (guardrail-filtered). Free users get limit-0 keys at
-        # registration, so `:free` models work before any subscription.
+        # Fallback only: the catalog is fetched per user with their provisioned
+        # OpenRouter key (guardrail-filtered). The fallback is a free model so an
+        # unsubscribed (limit-0) user can still call it if the fetch ever fails.
+        default:
+          - 'google/gemma-4-31b-it:free'
         fetch: true
       titleConvo: true
       # Free model so title generation works for unsubscribed (limit-0) users.

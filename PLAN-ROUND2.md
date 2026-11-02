@@ -1,4 +1,4 @@
-# Surviel-Me-Not — Round 2 Plan (model selector, branding, Stripe visibility)
+# Surveil-Me-Not — Round 2 Plan (model selector, branding, Stripe visibility)
 
 Round 1 (`PLAN.md`) is implemented. This plan covers the four known defects/improvements
 from testing round 1. **Approved 2026-11-02 with user revisions; implementation in
@@ -13,8 +13,8 @@ progress.**
   `docker compose up` — never with `-f deploy-surveil.yml`.
 - Consequence: any container started with `deploy-surveil.yml` (local prod-mode build **and
   the VPS**) runs with no `librechat.yaml` → no three tier endpoints, and
-  `resolveSurvielConfig(appConfig?.surviel)` in `api/server/routes/config.js:276` gets
-  nothing → `startupConfig.surviel.enabled = false` → `CreditsWidget.tsx:89,101` returns
+  `resolveSurveilConfig(appConfig?.surveil)` in `api/server/routes/config.js:276` gets
+  nothing → `startupConfig.surveil.enabled = false` → `CreditsWidget.tsx:89,101` returns
   `null` → the plan picker (Stripe checkout entry point) is never rendered.
 - This single missing mount plausibly explains both "payment options do not appear" and,
   on any deploy-surveil-built environment, the absence of tier endpoints.
@@ -47,7 +47,7 @@ progress.**
 ### F4 — Branding state
 - Landing: standalone `client/public/home.html` (1229 lines, inline CSS, own palette
   `#0d0d0d`/`#10b981`), served to anonymous visitors at `/` by
-  `packages/api/src/surviel/landing.ts`; `deploy-home.sh` ships it alone.
+  `packages/api/src/surveil/landing.ts`; `deploy-home.sh` ships it alone.
 - Chat app: stock LibreChat theme. Branding levers that already exist, no fork needed:
   `interface.theme` (bundled name or **inline theme definition**, light/dark —
   `packages/data-provider/src/config.ts:2593-2658`), `APP_TITLE`, `interface.customWelcome`,
@@ -85,7 +85,7 @@ progress.**
   actually breaks; produce the manual Stripe-dashboard checklist (portal config, webhook
   endpoint for production, test clock setup).
 - **D7 (new, from user)** Free/paid model lock UX: the picker gets pricing + subscription
-  state (`/api/surviel/pricing` + `/api/surviel/credits` already exist). Free models
+  state (`/api/surveil/pricing` + `/api/surveil/credits` already exist). Free models
   (zero price) enabled for all; paid models listed below, locked with an upgrade
   affordance until `credits.status` is active. Server-side enforcement remains the
   OpenRouter key limit (0 for free users) — paid requests fail closed even if the UI is
@@ -97,7 +97,7 @@ progress.**
 1. Start Docker; build with the exact prod path:
    `docker compose -p surveil -f deploy-surveil.yml up -d --build`.
 2. `docker exec surveil-api ls /app/librechat.yaml` → expect missing (confirms F1).
-3. `curl localhost:3080/api/config` (authenticated) → expect `surviel.enabled` absent/false.
+3. `curl localhost:3080/api/config` (authenticated) → expect `surveil.enabled` absent/false.
 4. Rebuild with mount added locally via a temporary `-f` override → confirm tiers appear,
    widget appears, plan picker renders.
 5. Record which reported symptoms survive → feeds Phases 2–4.
@@ -106,7 +106,7 @@ progress.**
 - `deploy-surveil.yml`: add librechat.yaml mount.
 - `.env.example`: add `ENDPOINTS=custom` with a comment.
 - `librechat.yaml`: remove `models.default` fallback; switch `titleModel` to a free model.
-- Docs: update `docs/surviel.md` runbook (build command + ENDPOINTS note).
+- Docs: update `docs/surveil.md` runbook (build command + ENDPOINTS note).
 - Verify: menu shows exactly three tiers; login/landing unaffected.
 
 ### Phase 2 — Registration provisioning + free/paid picker (D3 code, D4, D7)
@@ -116,8 +116,8 @@ progress.**
   the guardrail-filtered catalog (Tier 3 ZDR-only, Tier 1 full).
 - Decide Tier 2 picker filtering per D4 from live API evidence.
 - Picker UI: free-first sort, paid models locked + upgrade affordance until subscription
-  active; data from `/api/surviel/pricing` + `/api/surviel/credits`.
-- Stripe dashboard manual-steps checklist → appended to `docs/surviel.md`.
+  active; data from `/api/surveil/pricing` + `/api/surveil/credits`.
+- Stripe dashboard manual-steps checklist → appended to `docs/surveil.md`.
 
 ### Phase 3 — Chat branding (D5)
 - Inline `interface.theme` in `librechat.yaml` matching home.html tokens; `APP_TITLE`,
@@ -130,15 +130,15 @@ progress.**
 
 ### Phase 4 — Hardening & regression pass
 - `npx tsc --noEmit` in touched workspaces; focused Jest for changed modules; `npm run
-  surviel:verify-tiers -- <userId>`; test-clock renewal smoke if Stripe was touched.
+  surveil:verify-tiers -- <userId>`; test-clock renewal smoke if Stripe was touched.
 - Update `PLAN-ROUND2.md` checkboxes → merge notes into `PLAN.md` after approval.
 
 ## 4. Files likely to change
 - `deploy-surveil.yml` (mount), `.env.example` (ENDPOINTS, APP_TITLE, CUSTOM_FOOTER),
-  `librechat.yaml` (models defaults, titleModel, theme, welcome), `docs/surviel.md`
+  `librechat.yaml` (models defaults, titleModel, theme, welcome), `docs/surveil.md`
   (runbook + Stripe checklist), `client/public/home.html` (token sync only if needed),
-  registration/provisioning code in `packages/api/src/surviel/` + auth hook, model-picker
-  components in `client/src`, new `scripts/surviel/brand-check.mjs` + test.
+  registration/provisioning code in `packages/api/src/surveil/` + auth hook, model-picker
+  components in `client/src`, new `scripts/surveil/brand-check.mjs` + test.
 
 ## 5. Risks
 - **ENDPOINTS=custom** removes Agents/assistants UI — acceptable for MVP? (Q1)
@@ -161,3 +161,17 @@ progress.**
 - Free-key limit 0 behavior on OpenRouter (`:free` models allowed at limit 0) must be
   verified live in Phase 2; if OpenRouter rejects all requests at limit 0, fall back to a
   tiny nonzero limit (e.g. $0.10) or a per-user free allowance.
+
+
+## 7. Progress log
+- 2026-11-02 Phase 1 committed (12a5f8437): deploy-surveil.yml librechat.yaml mount,
+  ENDPOINTS=custom, models.default fallback removed, free title model, runbook notes.
+- 2026-11-02 Phase 2a committed (af29a55a0): provisionUserOnRegistration — limit-0 keys
+  at signup behind surveil.provisionOnRegistration (enabled in librechat.yaml); 5 new
+  unit tests; AuthService wiring + 2 wiring tests (73 pass).
+- 2026-11-02 Phase 2b committed (40d1732a8): free/paid picker — isSurveilFreeModel +
+  sortSurveilModelsFreeFirst in data-provider, SurveilModelAccess context, locked rows
+  aria-disabled/grayed/unselectable, free-first ordering; 5 + 2 new tests, all green.
+- 2026-11-02 Docs: librechat.example.yaml lever, docs/surveil.md free/paid behavior.
+- Pending: live verification (build running), Stripe E2E, Tier 2 filtering decision (D4),
+  Phase 3 branding.

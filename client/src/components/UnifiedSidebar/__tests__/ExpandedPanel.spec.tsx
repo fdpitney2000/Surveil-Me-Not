@@ -41,8 +41,8 @@ jest.mock('~/hooks', () => ({
   useShowMarketplace: () => false,
 }));
 
-/* The Surviel credits widget is unrelated to nav behavior and needs the full app providers. */
-jest.mock('~/components/Surviel/CreditsWidget', () => ({
+/* The Surveil credits widget is unrelated to nav behavior and needs the full app providers. */
+jest.mock('~/components/Surveil/CreditsWidget', () => ({
   __esModule: true,
   default: () => null,
 }));

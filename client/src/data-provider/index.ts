@@ -9,7 +9,7 @@ export * from './Insights';
 export * from './Memories';
 export * from './Messages';
 export * from './Misc';
-export * from './Surviel';
+export * from './Surveil';
 export * from './Projects';
 /* Scheduled chats */
 export * from './Schedules';

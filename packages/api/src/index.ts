@@ -45,8 +45,8 @@ export * from './mcp/assistants';
 export * from './mcp/request';
 export * from './mcp/reinitialize';
 export * from './mcp/icons';
-/* Surviel-Me-Not */
-export * from './surviel';
+/* Surveil-Me-Not */
+export * from './surveil';
 /* Utilities */
 export * from './mcp/utils';
 export * from './mcp/domainValidation';

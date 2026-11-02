@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { ZodError } from 'zod';
 import type { TEndpointsConfig, TModelsConfig, TConfig } from './types';
-import type { TSurvielStartupConfig } from './surviel';
+import type { TSurveilStartupConfig } from './surveil';
 import {
   MAX_SUBAGENTS,
   MAX_SUBAGENTS_CEILING,
@@ -3165,8 +3165,8 @@ export type TStartupConfig = {
   interface?: TInterfaceConfig;
   turnstile?: TTurnstileConfig;
   balance?: TBalanceConfig;
-  /** Surviel-Me-Not subscription/credit configuration exposed to the client. */
-  surviel?: TSurvielStartupConfig;
+  /** Surveil-Me-Not subscription/credit configuration exposed to the client. */
+  surveil?: TSurveilStartupConfig;
   transactions?: TTransactionsConfig;
   discordLoginEnabled: boolean;
   facebookLoginEnabled: boolean;
@@ -3850,7 +3850,7 @@ export const toolCallPreviewsConfigSchema = z.object({
 export type TToolCallPreviewsConfig = z.infer<typeof toolCallPreviewsConfigSchema>;
 
 /** One privacy tier, mapped to a custom endpoint by name. */
-export const survielTierSchema = z
+export const surveilTierSchema = z
   .object({
     /** Tier number, 1..3. */
     tier: z.number().int().min(1).max(3),
@@ -3861,14 +3861,14 @@ export const survielTierSchema = z
   })
   .strict();
 
-export type TSurvielTier = z.infer<typeof survielTierSchema>;
+export type TSurveilTier = z.infer<typeof surveilTierSchema>;
 
 /**
- * Surviel-Me-Not hosted-subscription configuration. All levers are optional and default to
+ * Surveil-Me-Not hosted-subscription configuration. All levers are optional and default to
  * behavior that leaves a stock deployment untouched (`enabled: false`). Secrets never live
  * here; only non-secret levers.
  */
-export const survielConfigSchema = z
+export const surveilConfigSchema = z
   .object({
     /** Master switch. When false, none of the subscription/credit behavior is active. */
     enabled: z.boolean().default(false),
@@ -3897,7 +3897,7 @@ export const survielConfigSchema = z
     /** Provision limit-0 OpenRouter keys when a user registers (free-model browsing). */
     provisionOnRegistration: z.boolean().default(false),
     /** The three tier definitions, mapped to custom endpoints by name. */
-    tiers: z.array(survielTierSchema).default([
+    tiers: z.array(surveilTierSchema).default([
       {
         tier: 1,
         endpoint: 'Max Model Selection',
@@ -3917,7 +3917,7 @@ export const survielConfigSchema = z
   })
   .strict();
 
-export type TSurvielConfig = z.infer<typeof survielConfigSchema>;
+export type TSurveilConfig = z.infer<typeof surveilConfigSchema>;
 
 export const configSchema = z.object({
   version: z.string(),
@@ -4136,7 +4136,7 @@ export const configSchema = z.object({
     .default({}),
   balance: balanceSchema.optional(),
   transactions: transactionsSchema.optional(),
-  surviel: survielConfigSchema.optional(),
+  surveil: surveilConfigSchema.optional(),
   speech: z
     .object({
       tts: ttsSchema.optional(),

@@ -4,7 +4,7 @@ import { TStartupConfig } from 'librechat-data-provider';
 export interface Endpoint {
   value: string;
   label: string;
-  /** One-line endpoint description (e.g. a Surviel tier guarantee). */
+  /** One-line endpoint description (e.g. a Surveil tier guarantee). */
   description?: string;
   hasModels: boolean;
   models?: Array<{ name: string; isGlobal?: boolean }>;

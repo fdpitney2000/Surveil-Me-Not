@@ -1687,14 +1687,14 @@ endpoints:
 #   maxWriteAttempts: 3 # Integer 1-100, including the first attempt.
 
 #=====================================================================#
-#                        Surviel-Me-Not                               #
+#                        Surveil-Me-Not                               #
 #=====================================================================#
 # Privacy-tiered hosted subscriptions. Each tier is a custom endpoint that
 # routes through OpenRouter; per-user keys are provisioned server-side and
 # never shown to the client. Non-secret levers live here; secrets live in .env.
-# See docs/surviel.md and PLAN.md.
+# See docs/surveil.md and PLAN.md.
 #
-# surviel:
+# surveil:
 #   enabled: true
 #   reconcileIntervalMs: 120000
 #   pricingTtlMs: 3600000
@@ -1707,6 +1707,9 @@ endpoints:
 #   maxTokensCap: 4096
 #   maxTokensCapThresholdUsd: 2
 #   proxyEnabled: false
+#   # Provision limit-0 OpenRouter keys when a user registers, so free users can
+#   # browse the real catalog and use :free models before subscribing.
+#   provisionOnRegistration: false
 #   tiers:
 #     - tier: 1
 #       endpoint: 'Max Model Selection'

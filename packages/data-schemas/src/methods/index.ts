@@ -43,7 +43,7 @@ import {
 } from './favorite';
 /* Agent Categories */
 import { createAgentCategoryMethods, type AgentCategoryMethods } from './agentCategory';
-import { createSurvielMethods, type SurvielMethods } from './surviel';
+import { createSurveilMethods, type SurveilMethods } from './surveil';
 /* Agent API Keys */
 import { createAgentApiKeyMethods, type AgentApiKeyMethods } from './agentApiKey';
 /* MCP Servers */
@@ -262,7 +262,7 @@ export type AllMethods = ToolApprovalGrantStorage &
   MemoryMethods &
   ToolFavoriteMethods &
   AgentCategoryMethods &
-  SurvielMethods &
+  SurveilMethods &
   AgentApiKeyMethods &
   MCPServerMethods &
   CodeEnvironmentMethods &
@@ -501,7 +501,7 @@ export function createMethods(
     ...createMemoryMethods(mongoose),
     ...createToolFavoriteMethods(mongoose),
     ...createAgentCategoryMethods(mongoose),
-    ...createSurvielMethods(mongoose),
+    ...createSurveilMethods(mongoose),
     ...createAgentApiKeyMethods(mongoose),
     ...createMCPServerMethods(mongoose),
     ...createCodeEnvironmentMethods(mongoose),
@@ -573,7 +573,7 @@ export type {
   ProjectFilesOptions,
   ToolFavoriteMethods,
   AgentCategoryMethods,
-  SurvielMethods,
+  SurveilMethods,
   AgentApiKeyMethods,
   MCPServerMethods,
   CodeEnvironmentMethods,

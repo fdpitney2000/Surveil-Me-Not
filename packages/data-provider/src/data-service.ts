@@ -1,11 +1,11 @@
 import type { AxiosResponse } from 'axios';
 import type {
-  TSurvielCredits,
-  TSurvielPricingResponse,
-  TSurvielCheckoutRequest,
-  TSurvielCheckoutResponse,
-  TSurvielPortalResponse,
-} from './surviel';
+  TSurveilCredits,
+  TSurveilPricingResponse,
+  TSurveilCheckoutRequest,
+  TSurveilCheckoutResponse,
+  TSurveilPortalResponse,
+} from './surveil';
 import type {
   TTracePage,
   TTracePageParams,
@@ -304,31 +304,31 @@ export function getUserBalance(): Promise<t.TBalanceResponse> {
   return request.get(endpoints.balance());
 }
 
-/* Surviel-Me-Not subscriptions and credits */
-export function getSurvielCredits(): Promise<TSurvielCredits> {
-  return request.get(endpoints.survielCredits());
+/* Surveil-Me-Not subscriptions and credits */
+export function getSurveilCredits(): Promise<TSurveilCredits> {
+  return request.get(endpoints.surveilCredits());
 }
 
-export function refreshSurvielCredits(): Promise<TSurvielCredits> {
-  return request.post(endpoints.survielCreditsRefresh());
+export function refreshSurveilCredits(): Promise<TSurveilCredits> {
+  return request.post(endpoints.surveilCreditsRefresh());
 }
 
-export function getSurvielPricing(): Promise<TSurvielPricingResponse> {
-  return request.get(endpoints.survielPricing());
+export function getSurveilPricing(): Promise<TSurveilPricingResponse> {
+  return request.get(endpoints.surveilPricing());
 }
 
-export function refreshSurvielPricing(): Promise<TSurvielPricingResponse> {
-  return request.post(endpoints.survielPricingRefresh());
+export function refreshSurveilPricing(): Promise<TSurveilPricingResponse> {
+  return request.post(endpoints.surveilPricingRefresh());
 }
 
-export function createSurvielCheckout(
-  payload: TSurvielCheckoutRequest,
-): Promise<TSurvielCheckoutResponse> {
-  return request.post(endpoints.survielCheckout(), payload);
+export function createSurveilCheckout(
+  payload: TSurveilCheckoutRequest,
+): Promise<TSurveilCheckoutResponse> {
+  return request.post(endpoints.surveilCheckout(), payload);
 }
 
-export function createSurvielPortal(): Promise<TSurvielPortalResponse> {
-  return request.post(endpoints.survielPortal());
+export function createSurveilPortal(): Promise<TSurveilPortalResponse> {
+  return request.post(endpoints.surveilPortal());
 }
 
 export const updateTokenCount = (text: string) => {

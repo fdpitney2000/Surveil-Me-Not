@@ -13,7 +13,7 @@ import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 
 const AccountSettings = lazyWithRecovery(() => import('~/components/Nav/AccountSettings'));
-const CreditsWidget = lazyWithRecovery(() => import('~/components/Surviel/CreditsWidget'));
+const CreditsWidget = lazyWithRecovery(() => import('~/components/Surveil/CreditsWidget'));
 
 const NewChatButton = memo(function NewChatButton({
   setActive,

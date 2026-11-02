@@ -1,4 +1,4 @@
-# Surviel-Me-Not — MVP Plan (privacy-tiered hosted LibreChat)
+# Surveil-Me-Not — MVP Plan (privacy-tiered hosted LibreChat)
 
 Status: **PLAN ONLY — awaiting approval. No code written.**
 Author: implementation agent. Date: 2026-10-05.
@@ -28,11 +28,11 @@ Upstream baseline: LibreChat `v0.8.8-rc4` (commit `63363a777`).
 
 | Item | Spec says | Actual | Action |
 |---|---|---|---|
-| Repo | clone of `fdpitney2000/Surviel-Me-Not` (fork of LibreChat v0.8.8) | `/Users/fdp/librechat2` origin = `danny-avila/LibreChat.git`, `main` @ `v0.8.8-rc4` | **Ask (Q1)** |
+| Repo | clone of `fdpitney2000/Surveil-Me-Not` (fork of LibreChat v0.8.8) | `/Users/fdp/librechat2` origin = `danny-avila/LibreChat.git`, `main` @ `v0.8.8-rc4` | **Ask (Q1)** |
 | Nested dir | — | `librechat2/` is a *separate* git repo, origin `fdpitney2000/librechat2.git`, single "Initial commit", only `LICENSE`/`.gitattributes` | Ignore unless you say otherwise |
 | Branch | `mvp` | current branch `main`; no `mvp` exists | Create `mvp` from `main` after Q1 |
 | upstream remote | add `LibreChat-AI/LibreChat` if missing | origin is already canonical LibreChat; no `upstream` remote | **Ask (Q1)** |
-| Secrets | `OPENROUTER_MANAGEMENT_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` in gitignored `.env` | These variable names were **not set** in the workspace `.env` I inspected (only LibreChat bootstrap keys + `OPENROUTER_KEY` empty). I did not print values. | **Ask (Q2)**; `surviel:check-env` will report precisely |
+| Secrets | `OPENROUTER_MANAGEMENT_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` in gitignored `.env` | These variable names were **not set** in the workspace `.env` I inspected (only LibreChat bootstrap keys + `OPENROUTER_KEY` empty). I did not print values. | **Ask (Q2)**; `surveil:check-env` will report precisely |
 | Docker | MVP via Docker | `docker-compose.yml` (upstream) exists; untracked `docker-compose.librechat2.yml` overrides container names and builds `librechat2-local` | **Ask (Q10)** |
 | Ports | 3080 | `.env` uses `PORT=3081`, `DOMAIN_*:3081` | Note for docs |
 | Stripe CLI | installed, TEST mode | `stripe 1.50.10`, sandbox `acct_1UCmlXR35hoGDQ2E`, `livemode:false` | OK |
@@ -103,7 +103,7 @@ OpenAI-compatible, so this is fine.
 - Residual risk: a user top-level `model_parameters.provider` would land in `llmConfig.provider`,
   a different channel from `modelKwargs.provider`. It is not a known ChatOpenAI body param, so it
   should be ignored, but this must be **proven by test** (phase 5). A defensive sanitizer for the
-  surviel endpoints is proposed in §5.5.
+  surveil endpoints is proposed in §5.5.
 - `dropParams` is admin-only (endpoint schema), never user-controllable. ✅
 
 ### 2.4 Per-user encrypted key store
@@ -137,7 +137,7 @@ OpenAI-compatible, so this is fine.
 
 ### 2.6 Routes, mounting, raw-body webhook
 
-- Route aggregation: `api/server/routes/index.js` (add `surviel`).
+- Route aggregation: `api/server/routes/index.js` (add `surveil`).
 - Mount block: `api/server/index.js:403-458`; must be before `app.use('/api', routes.openapi)` (`:458`).
 - **Raw body problem:** global `express.json({limit:'3mb'})` at `api/server/index.js:342` runs before
   any route router, so a router-level `express.raw` would see an already-parsed body and the Stripe
@@ -159,7 +159,7 @@ from `startServer()` (near `connectDb()` / `startCodeEnvironmentLifecycleReconci
 ### 2.8 Config schema / env
 
 - `configSchema` top-level `packages/data-provider/src/config.ts:3093-3236`; loader is `.strict()`,
-  so a new `surviel` section must be added to the schema.
+  so a new `surveil` section must be added to the schema.
 - Endpoint schema `config.ts:1709-1767`; base endpoint `:678-761`; per-model `description` exists
   (`modelItemSchema:781-787`) but **no per-endpoint `description`** and **no way to hide the
   `userProvide` key prompt**.
@@ -282,7 +282,7 @@ users to paste a key. We need to hide that. Proposal: add an optional endpoint f
 `hideUserProvidedKey?: boolean` to `endpointSchema`, and in `loadCustomEndpointsConfig` set
 `userProvide: isUserProvided(...) && !endpoint.hideUserProvidedKey`. Set it true on all three
 endpoints. This is ~4 lines in upstream files plus the schema field; new behavior lives in config.
-(Alternative: a bespoke `apiKeySource: 'surviel'` hook — larger change, not preferred.)
+(Alternative: a bespoke `apiKeySource: 'surveil'` hook — larger change, not preferred.)
 
 ### 5.4 Shared pool and worst-case overspend — **needs your decision**
 
@@ -302,28 +302,28 @@ triggers an on-demand reconcile so the newly active key gets the pool. This keep
 
 I recommend **allocate-to-active**. If you prefer the literal spec formula, we ship `duplicate`
 mode and document the `3×` bound. Both will be configurable
-(`surviel.keyLimitMode: 'allocate' | 'duplicate'`, default `allocate`).
+(`surveil.keyLimitMode: 'allocate' | 'duplicate'`, default `allocate`).
 
 Independent of mode: cap `max_tokens` when remaining is low (e.g. remaining <
-`surviel.lowBalanceMaxTokensThreshold` → cap `max_tokens` to `surviel.maxTokensCap`), so a single
+`surveil.lowBalanceMaxTokensThreshold` → cap `max_tokens` to `surveil.maxTokensCap`), so a single
 request cannot overshoot wildly.
 
 ### 5.5 Enforcement contingency — proxy
 
 If phase-5 tests show any path where the `provider` block can be stripped, we add a thin
-server-side proxy in front of OpenRouter (`surviel.proxy.enabled`, default off): LibreChat's
-endpoint `baseURL` points at `/api/surviel/proxy/{tier}`, which resolves the user's key/tier,
+server-side proxy in front of OpenRouter (`surveil.proxy.enabled`, default off): LibreChat's
+endpoint `baseURL` points at `/api/surveil/proxy/{tier}`, which resolves the user's key/tier,
 injects/overwrites `provider`, strips any client-supplied `provider`, and forwards. The proxy is
 also the airtight fix for the `model_parameters.provider` residual risk. Plan includes the design
-but we do not build it unless tests require it. A defensive sanitizer for the surviel endpoints
+but we do not build it unless tests require it. A defensive sanitizer for the surveil endpoints
 (delete `provider`/`modelKwargs` from agent `model_parameters` before `getOptions`) is the lighter
 option and will be included in phase 5 regardless.
 
 ### 5.6 Pricing service — display only
 
 - Fetch `GET /api/v1/models` pricing fields (`pricing.prompt`/`completion` are USD **per token**
-  as strings). Cache with `surviel.pricing.ttlMs` (default 3600000), stale-while-revalidate, manual
-  refresh endpoint `POST /api/surviel/pricing/refresh` (admin/operator) and script.
+  as strings). Cache with `surveil.pricing.ttlMs` (default 3600000), stale-while-revalidate, manual
+  refresh endpoint `POST /api/surveil/pricing/refresh` (admin/operator) and script.
 - Display price per 1M tokens in the picker and per-message cost from `usage.cost` in responses.
 - Price changes affect burn-rate display only; **ledger integrity comes from OpenRouter key `usage`**.
 
@@ -331,9 +331,9 @@ option and will be included in phase 5 regardless.
 
 - On `invoice.paid` with `billing_reason ∈ {subscription_create, subscription_cycle}`: start a new
   period; snapshot per-key lifetime usage; `grant = planPrice × creditGrantRatio`; store an
-  idempotent `SurvielPeriod` keyed by `invoice.id`.
+  idempotent `SurveilPeriod` keyed by `invoice.id`.
 - `remaining = grant - (Σ current lifetime usage − Σ snapshot usage)`, floored at 0.
-- `invoice.payment_failed` → `past_due`; after `surviel.graceDays` disable keys.
+- `invoice.payment_failed` → `past_due`; after `surveil.graceDays` disable keys.
 - `customer.subscription.deleted` → keys disabled at `current_period_end`; credits usable until then.
 - `charge.refunded` / `charge.dispute.created` → disable keys + `flaggedForReview=true`.
 - **Upgrade:** immediate; grant prorated credit difference (`(newPrice-oldPrice) × ratio ×
@@ -343,12 +343,12 @@ option and will be included in phase 5 regardless.
 
 ### 5.8 Guardrail bootstrap
 
-Idempotent `surviel:openrouter-bootstrap`:
-1. `GET /api/v1/guardrails`, match by `name` (`surviel:tier1|2|3`), create missing.
-2. Tier 1/2: `limit_usd = surviel.guardrailBackstopUsd` (default max grant = 180) +
+Idempotent `surveil:openrouter-bootstrap`:
+1. `GET /api/v1/guardrails`, match by `name` (`surveil:tier1|2|3`), create missing.
+2. Tier 1/2: `limit_usd = surveil.guardrailBackstopUsd` (default max grant = 180) +
    `reset_interval: monthly`. Tier 2 additionally training flags (5.2). Tier 3: the five
    `enforce_zdr_* = true`.
-3. Persist IDs in a small `SurvielSetting` doc.
+3. Persist IDs in a small `SurveilSetting` doc.
 4. Enable `is_filtered_model_catalog_enabled` via `PATCH /api/v1/organization/settings`.
 
 ### 5.9 Model catalog / pickers
@@ -363,9 +363,9 @@ Idempotent `surviel:openrouter-bootstrap`:
 
 ### 5.10 Management-key expiry / rotation
 
-- Management keys expire and cannot be extended. Store `SURVIEL_OPENROUTER_MGMT_KEY_EXPIRES_AT`
+- Management keys expire and cannot be extended. Store `SURVEIL_OPENROUTER_MGMT_KEY_EXPIRES_AT`
   (optional). Log a warning at startup and in the reconciler when
-  `now > expiresAt - surviel.mgmtKeyWarnDays`. Provide `surviel:openrouter-check-key` to verify the
+  `now > expiresAt - surveil.mgmtKeyWarnDays`. Provide `surveil:openrouter-check-key` to verify the
   key and print expiry (redacted). Rotation = set a new env value and restart; guardrail/key IDs are
   stable and need no migration.
 
@@ -380,10 +380,10 @@ client (React)
   CreditsWidget / PerTierBreakdown / PricingPrompt / LowBalanceNotice / ManageSubscription
         │ React Query
         ▼
-/api/surviel/*  (thin CJS router, api/server/routes/surviel.js)
+/api/surveil/*  (thin CJS router, api/server/routes/surveil.js)
         │ delegates
         ▼
-packages/api/src/surviel/*  (all behavior)
+packages/api/src/surveil/*  (all behavior)
   config · money · openrouter/{client,guardrails,keys,usage} · pricing/service
   subscription/{store,period,checkout} · stripe/{client,webhook}
   reconciler · credits · provision · errors
@@ -395,46 +395,46 @@ packages/api/src/surviel/*  (all behavior)
 
 ### 6.2 Data model (new collections; all money micro-USD integers)
 
-- `SurvielSubscription` (unique `userId`): `stripeCustomerId`, `stripeSubscriptionId`, `priceId`,
+- `SurveilSubscription` (unique `userId`): `stripeCustomerId`, `stripeSubscriptionId`, `priceId`,
   `plan`, `status` (`active|past_due|grace|disabled|canceled|review`), `periodStart`, `renewsAt`,
   `grantMicroUsd`, `snapshotByTier` (`{tier1,tier2,tier3}` lifetime usage at period start),
   `activeTier`, `graceUntil`, `flaggedForReview`, `lastSyncedAt`, `lastEventCreatedAt`, timestamps.
-- `SurvielPeriod` (unique `invoiceId`): `userId`, `plan`, `grantMicroUsd`, `snapshotByTier`,
+- `SurveilPeriod` (unique `invoiceId`): `userId`, `plan`, `grantMicroUsd`, `snapshotByTier`,
   `periodStart`, `periodEnd`, `kind` (`cycle|proration`), `createdAt`.
-- `SurvielKey` (unique `{userId,tier}`): `keyHash`, `keyName` (`surviel:{userId}:{tier}`),
+- `SurveilKey` (unique `{userId,tier}`): `keyHash`, `keyName` (`surveil:{userId}:{tier}`),
   `guardrailId`, `disabled`, `lastUsageMicroUsd`, `createdAt`. Plaintext key lives only in the
   encrypted `Key` collection under the endpoint name.
-- `SurvielEvent` (unique `eventId`): `type`, `processedAt`, `createdAt` (Stripe event created).
-- `SurvielSetting` (singleton/keys): guardrail IDs, pricing cache pointer, catalog flag.
+- `SurveilEvent` (unique `eventId`): `type`, `processedAt`, `createdAt` (Stripe event created).
+- `SurveilSetting` (singleton/keys): guardrail IDs, pricing cache pointer, catalog flag.
 
 ### 6.3 Subscription → provisioning flow
 
-1. User clicks Subscribe → `POST /api/surviel/checkout` → Stripe Checkout Session (`mode:
+1. User clicks Subscribe → `POST /api/surveil/checkout` → Stripe Checkout Session (`mode:
    subscription`, `line_items:[price]`, `client_reference_id:userId`, `metadata.userId`,
    `subscription_data.metadata.userId`, success/cancel URLs). Create/reuse `stripeCustomerId`.
 2. `checkout.session.completed` → link customer/subscription to user (idempotent).
-3. `invoice.paid` (create/cycle) → create `SurvielPeriod` (unique invoice id), snapshot usage,
+3. `invoice.paid` (create/cycle) → create `SurveilPeriod` (unique invoice id), snapshot usage,
    set grant, then **provision keys idempotently**:
-   - For each tier: if `SurvielKey` exists → verify via `GET /keys/{hash}`; else create
+   - For each tier: if `SurveilKey` exists → verify via `GET /keys/{hash}`; else create
      `POST /keys {name, limit: 0, limit_reset: null}` → store plaintext into `Key` collection
      (`updateUserKey({userId, name: endpointName, value: JSON.stringify({apiKey})})`), store hash.
    - Assign each hash to its guardrail (`POST /guardrails/{id}/assignments/keys`).
    - Retry-safe: keys are looked up by name/hash before creation; the encrypted store is upsert.
 4. Reconcile immediately, then on the interval.
 5. No subscription → no keys. Chat middleware returns a stable coded error
-   (`SURVIEL_NO_SUBSCRIPTION`); client shows the pricing prompt and blocks send.
+   (`SURVEIL_NO_SUBSCRIPTION`); client shows the pricing prompt and blocks send.
 
 ### 6.4 Reconciler flow (leader-gated, `setInterval`, default 2 min)
 
 For each subscription in an active-ish status:
-1. Fetch per-key `usage` (batched list, name prefix `surviel:`; paginate).
+1. Fetch per-key `usage` (batched list, name prefix `surveil:`; paginate).
 2. `spent = Σ usage − Σ snapshot`; `remaining = max(grant − spent, 0)`.
 3. Apply `keyLimitMode` (5.4) to set each key's `limit` via `PATCH /keys/{hash}`.
 4. Disable all keys when `remaining ≤ 0` or status not usable; re-enable on renewal/upgrade.
 5. Persist `lastSyncedAt`, `snapshotByTier`, `activeTier`.
-6. On-demand refresh endpoint `POST /api/surviel/credits/refresh` (rate-limited).
+6. On-demand refresh endpoint `POST /api/surveil/credits/refresh` (rate-limited).
 
-### 6.5 Credits API — `GET /api/surviel/credits`
+### 6.5 Credits API — `GET /api/surveil/credits`
 
 ```json
 { "plan":"100", "status":"active", "periodStart":"...", "renewsAt":"...",
@@ -446,7 +446,7 @@ For each subscription in an active-ish status:
 ### 6.6 UI
 
 - Persistent sidebar/nav widget: remaining USD, usage bar, renews-at + "unused credits expire",
-  click → per-tier breakdown, low-balance warning at `surviel.lowBalanceThresholdUsd`,
+  click → per-tier breakdown, low-balance warning at `surveil.lowBalanceThresholdUsd`,
   "Manage subscription / Upgrade" (Stripe portal session), exhausted state.
 - In-chat message when exhausted/no subscription with renewal date + upgrade.
 - Tier guarantee one-liner from the new per-endpoint `description`.
@@ -455,11 +455,11 @@ For each subscription in an active-ish status:
 
 ## 7. File-level change list
 
-### 7.1 New backend — `packages/api/src/surviel/` (behavior)
+### 7.1 New backend — `packages/api/src/surveil/` (behavior)
 
-- `config.ts` — resolve `surviel` yaml + env, tier defs, guardrail names, fee math, constants.
+- `config.ts` — resolve `surveil` yaml + env, tier defs, guardrail names, fee math, constants.
 - `money.ts` — micro-USD helpers (`toMicro`, `fromMicro`, `formatUsd`).
-- `errors.ts` — stable codes (`SURVIEL_NO_SUBSCRIPTION`, `SURVIEL_CREDITS_EXHAUSTED`, …).
+- `errors.ts` — stable codes (`SURVEIL_NO_SUBSCRIPTION`, `SURVEIL_CREDITS_EXHAUSTED`, …).
 - `openrouter/client.ts` — Management API client (redacting logger; never logs key strings).
 - `openrouter/guardrails.ts` — idempotent bootstrap.
 - `openrouter/keys.ts` — create/list/update/delete/assign; name convention.
@@ -478,36 +478,36 @@ For each subscription in an active-ish status:
 
 ### 7.2 New data layer — `packages/data-schemas/src/`
 
-- `schema/survielSubscription.ts`, `schema/survielPeriod.ts`, `schema/survielKey.ts`,
-  `schema/survielEvent.ts`, `schema/survielSetting.ts`.
-- `methods/surviel.ts` (or split) + register in `models/index.ts`, `methods/index.ts`.
+- `schema/surveilSubscription.ts`, `schema/surveilPeriod.ts`, `schema/surveilKey.ts`,
+  `schema/surveilEvent.ts`, `schema/surveilSetting.ts`.
+- `methods/surveil.ts` (or split) + register in `models/index.ts`, `methods/index.ts`.
 
 ### 7.3 Wiring — `/api` (thin, per AGENTS.md)
 
-- `api/server/routes/surviel.js` — require `@librechat/api` surviel handlers; router.
-- `api/server/routes/index.js` — add + export `surviel`.
+- `api/server/routes/surveil.js` — require `@librechat/api` surveil handlers; router.
+- `api/server/routes/index.js` — add + export `surveil`.
 - `api/server/index.js`:
-  - `express.json({ ..., verify: captureRawBodyForSurviel })` at `:342` (one-line + tiny helper).
-  - `app.use('/api/surviel', routes.surviel);` before `:458`.
-  - start `startSurvielReconciler({ mongoose })` near `:199`.
+  - `express.json({ ..., verify: captureRawBodyForSurveil })` at `:342` (one-line + tiny helper).
+  - `app.use('/api/surveil', routes.surveil);` before `:458`.
+  - start `startSurveilReconciler({ mongoose })` near `:199`.
   - update route-string tests.
 - `api/server/services/AuthService.js` — **no** provisioning hook needed (provision on payment).
 - `api/server/controllers/UserController.js:507` — add OpenRouter key deletion
-  (`survielDeleteUserKeys`) beside `db.deleteUserKey`.
+  (`surveilDeleteUserKeys`) beside `db.deleteUserKey`.
 
 ### 7.4 Shared config/types — `packages/data-provider/src/`
 
-- `config.ts`: add `surviel` section to `configSchema` (all levers with defaults); add endpoint
-  fields `description?: string` and `hideUserProvidedKey?: boolean`; add `SurvielConfig` type.
-- `keys.ts`: React Query keys (`survielCredits`, `survielPricing`).
-- new `surviel.ts` (or `types/surviel.ts`): shared credits/plan/tier types + endpoint defs.
+- `config.ts`: add `surveil` section to `configSchema` (all levers with defaults); add endpoint
+  fields `description?: string` and `hideUserProvidedKey?: boolean`; add `SurveilConfig` type.
+- `keys.ts`: React Query keys (`surveilCredits`, `surveilPricing`).
+- new `surveil.ts` (or `types/surveil.ts`): shared credits/plan/tier types + endpoint defs.
 - `packages/api/src/endpoints/custom/config.ts`: honor `hideUserProvidedKey`; surface `description`.
 
 ### 7.5 Client — `client/src/`
 
-- `components/Surviel/CreditsWidget.tsx`, `PerTierBreakdown.tsx`, `PricingPrompt.tsx`,
+- `components/Surveil/CreditsWidget.tsx`, `PerTierBreakdown.tsx`, `PricingPrompt.tsx`,
   `LowBalanceNotice.tsx`, `ManageSubscription.tsx` + colocated `__tests__`.
-- `hooks/Surviel/useCredits.ts`, `useCheckout.ts`, `usePortal.ts` (React Query).
+- `hooks/Surveil/useCredits.ts`, `useCheckout.ts`, `usePortal.ts` (React Query).
 - Integrate widget into nav/sidebar; integrate exhausted/no-subscription into chat send path.
 - `locales/en/translation.json` — new keys only.
 
@@ -515,10 +515,10 @@ For each subscription in an active-ish status:
 
 - `librechat.yaml` — three custom endpoints with `addParams`, `description`, `hideUserProvidedKey`,
   `apiKey: user_provided`, `baseURL`, `models.fetch`, `titleConvo` same endpoint.
-- `librechat.example.yaml` — documented `surviel` block + endpoints.
+- `librechat.example.yaml` — documented `surveil` block + endpoints.
 - `.env.example` — variable **names** only (see §12).
-- `scripts/surviel/*.mjs` + `package.json` scripts (§8).
-- `docs/surviel.md` — full local flow incl. Stripe CLI forwarding + test clocks.
+- `scripts/surveil/*.mjs` + `package.json` scripts (§8).
+- `docs/surveil.md` — full local flow incl. Stripe CLI forwarding + test clocks.
 - `Dockerfile`/compose — only if Q10 requires.
 
 ---
@@ -527,14 +527,14 @@ For each subscription in an active-ish status:
 
 | Script | Purpose |
 |---|---|
-| `npm run surviel:check-env` | Report set/unset per required var **without printing values**; exit nonzero if missing |
-| `npm run surviel:stripe-local-secret` | `stripe listen --print-secret` → write `STRIPE_WEBHOOK_SECRET_LOCAL` to `.env` (never echo) |
-| `npm run surviel:openrouter-bootstrap` | Idempotent guardrails + org filtered-catalog flag |
-| `npm run surviel:openrouter-provision -- <userId>` | Provision/repair 3 keys for a user |
-| `npm run surviel:openrouter-deprovision -- <userId>` | Delete keys + local refs |
-| `npm run surviel:openrouter-refresh-pricing` | Manual pricing refresh |
-| `npm run surviel:openrouter-check-key` | Verify management key + print expiry (redacted) |
-| `npm run surviel:verify-tiers` | Tiny live budget; prove routing per tier (§10) |
+| `npm run surveil:check-env` | Report set/unset per required var **without printing values**; exit nonzero if missing |
+| `npm run surveil:stripe-local-secret` | `stripe listen --print-secret` → write `STRIPE_WEBHOOK_SECRET_LOCAL` to `.env` (never echo) |
+| `npm run surveil:openrouter-bootstrap` | Idempotent guardrails + org filtered-catalog flag |
+| `npm run surveil:openrouter-provision -- <userId>` | Provision/repair 3 keys for a user |
+| `npm run surveil:openrouter-deprovision -- <userId>` | Delete keys + local refs |
+| `npm run surveil:openrouter-refresh-pricing` | Manual pricing refresh |
+| `npm run surveil:openrouter-check-key` | Verify management key + print expiry (redacted) |
+| `npm run surveil:verify-tiers` | Tiny live budget; prove routing per tier (§10) |
 
 All OpenRouter scripts load `OPENROUTER_MANAGEMENT_KEY` from `.env`, redact all output, and send
 created key strings **straight to the encrypted store**, never to stdout/logs.
@@ -607,11 +607,11 @@ permissions, and `filteredTools`. We will not log message bodies anywhere.
 
 ```
 OPENROUTER_MANAGEMENT_KEY=
-SURVIEL_OPENROUTER_MGMT_KEY_EXPIRES_AT=
+SURVEIL_OPENROUTER_MGMT_KEY_EXPIRES_AT=
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_WEBHOOK_SECRET_LOCAL=
-SURVIEL_STRIPE_WEBHOOK_SOURCE=cli|dashboard
+SURVEIL_STRIPE_WEBHOOK_SOURCE=cli|dashboard
 STRIPE_PRICE_50_ID=
 STRIPE_PRICE_100_ID=
 STRIPE_PRICE_200_ID=
@@ -619,20 +619,20 @@ STRIPE_FEE_PCT=2.9
 STRIPE_FEE_FIXED=0.30
 OPENROUTER_FEE_PCT=
 CREDIT_GRANT_RATIO=0.9
-SURVIEL_RECONCILE_INTERVAL_MS=120000
-SURVIEL_PRICING_TTL_MS=3600000
-SURVIEL_LOW_BALANCE_USD=5
-SURVIEL_GRACE_DAYS=3
-SURVIEL_ALLOW_LIVE_STRIPE=false
+SURVEIL_RECONCILE_INTERVAL_MS=120000
+SURVEIL_PRICING_TTL_MS=3600000
+SURVEIL_LOW_BALANCE_USD=5
+SURVEIL_GRACE_DAYS=3
+SURVEIL_ALLOW_LIVE_STRIPE=false
 ```
-(All non-secret levers also live in the `librechat.yaml` `surviel` block with defaults.)
+(All non-secret levers also live in the `librechat.yaml` `surveil` block with defaults.)
 
 ---
 
 ## 13. Phases (one commit each, no push/deploy)
 
 1. **Local dev + endpoints + tooling** — branch `mvp`; `librechat.yaml` 3 endpoints;
-   `surviel` config schema; `check-env`, `stripe-local-secret`; Docker docs; route skeleton;
+   `surveil` config schema; `check-env`, `stripe-local-secret`; Docker docs; route skeleton;
    `description` + `hideUserProvidedKey` plumbing. Verify all three endpoints appear and chat
    errors cleanly with no key.
 2. **OpenRouter bootstrap + provisioning** — guardrails, org flag, key provision/deprovision,
@@ -642,14 +642,14 @@ SURVIEL_ALLOW_LIVE_STRIPE=false
 4. **Reconciler + credits API + pricing + UI** — periodic/on-demand sync, credits endpoint,
    pricing service (SWR), widget/prompt/breakdown/manage.
 5. **Enforcement tests + privacy hardening + docs** — outbound body capture per path, override
-   tests, `verify-tiers`, privacy config lockdown, `docs/surviel.md`, sanitizer/proxy if needed.
+   tests, `verify-tiers`, privacy config lockdown, `docs/surveil.md`, sanitizer/proxy if needed.
 
 ---
 
 ## 14. Questions for you (blocking)
 
 1. **Repo/branch:** the workspace is upstream `danny-avila/LibreChat` @ `v0.8.8-rc4` on `main`,
-   not `fdpitney2000/Surviel-Me-Not`. The nested `librechat2/` is an empty `fdpitney2000/librechat2`
+   not `fdpitney2000/Surveil-Me-Not`. The nested `librechat2/` is an empty `fdpitney2000/librechat2`
    clone. Which is authoritative? Should I create `mvp` off this `main`, and add an `upstream`
    remote (canonical is already `origin`)?
 2. **Secrets:** `OPENROUTER_MANAGEMENT_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` did not
@@ -673,6 +673,6 @@ SURVIEL_ALLOW_LIVE_STRIPE=false
 11. **Stripe portal:** confirm you'll configure the Customer Portal manually (upgrade/downgrade/
     cancel, plans, "unused credits expire" copy at checkout). I'll give exact steps in phase 3.
 12. **Live-key guard:** confirm the app should refuse to start with live Stripe keys unless
-    `SURVIEL_ALLOW_LIVE_STRIPE=true`.
+    `SURVEIL_ALLOW_LIVE_STRIPE=true`.
 
 I will not write any code until you answer/approve.

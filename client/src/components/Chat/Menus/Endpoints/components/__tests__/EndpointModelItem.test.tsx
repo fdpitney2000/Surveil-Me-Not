@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import type { SurvielModelAccess } from '~/components/Surviel/modelAccess';
+import type { SurveilModelAccess } from '~/components/Surveil/modelAccess';
 import type { Endpoint, SelectedValues } from '~/common';
 import { EndpointModelItem } from '../EndpointModelItem';
 
@@ -29,18 +29,18 @@ jest.mock('~/hooks', () => ({
   useLocalize: () => (key: string) => key,
 }));
 
-const unlockedAccess: SurvielModelAccess = {
-  isSurvielEndpoint: () => false,
+const unlockedAccess: SurveilModelAccess = {
+  isSurveilEndpoint: () => false,
   hasActiveSubscription: false,
   isFreeModel: () => false,
   isLocked: () => false,
   sortForEndpoint: (_endpoint: string, modelIds: string[]) => modelIds,
 };
 
-let mockSurvielAccess: SurvielModelAccess = unlockedAccess;
+let mockSurveilAccess: SurveilModelAccess = unlockedAccess;
 
-jest.mock('~/components/Surviel/modelAccess', () => ({
-  useSurvielModelAccess: () => mockSurvielAccess,
+jest.mock('~/components/Surveil/modelAccess', () => ({
+  useSurveilModelAccess: () => mockSurveilAccess,
 }));
 
 jest.mock('~/components/Chat/Menus/Endpoints/useActiveItem', () => ({
@@ -70,14 +70,14 @@ const baseEndpoint: Endpoint = {
 describe('EndpointModelItem', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockSurvielAccess = unlockedAccess;
+    mockSurveilAccess = unlockedAccess;
   });
 
   it('blocks selection and marks the row when the model is locked (no subscription)', () => {
     mockSelectedValues = { endpoint: 'anthropic', model: '', modelSpec: '' };
-    mockSurvielAccess = {
-      ...mockSurvielAccess,
-      isSurvielEndpoint: (value: string) => value === 'anthropic',
+    mockSurveilAccess = {
+      ...mockSurveilAccess,
+      isSurveilEndpoint: (value: string) => value === 'anthropic',
       isLocked: () => true,
     };
     renderItem();
@@ -92,15 +92,15 @@ describe('EndpointModelItem', () => {
 
   it('labels free tier models and keeps them selectable without a subscription', () => {
     mockSelectedValues = { endpoint: 'anthropic', model: '', modelSpec: '' };
-    mockSurvielAccess = {
-      ...mockSurvielAccess,
-      isSurvielEndpoint: (value: string) => value === 'anthropic',
+    mockSurveilAccess = {
+      ...mockSurveilAccess,
+      isSurveilEndpoint: (value: string) => value === 'anthropic',
       isFreeModel: () => true,
       isLocked: () => false,
     };
     renderItem();
 
-    expect(screen.getByText('com_surviel_free_model')).toBeInTheDocument();
+    expect(screen.getByText('com_surveil_free_model')).toBeInTheDocument();
 
     screen.getByRole('menuitem').click();
     expect(mockHandleSelectModel).toHaveBeenCalledWith(baseEndpoint, 'claude-opus-4-6');

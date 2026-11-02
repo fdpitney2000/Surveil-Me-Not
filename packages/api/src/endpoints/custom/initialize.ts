@@ -320,7 +320,7 @@ export async function initializeCustom(
   const modelOptions = { ...(model_parameters ?? {}), user: userId };
 
   /**
-   * When an endpoint enforces a `provider` block through `addParams` (e.g. the Surviel
+   * When an endpoint enforces a `provider` block through `addParams` (e.g. the Surveil
    * privacy tiers), strip any user-supplied `provider` or `modelKwargs` so a stored agent
    * configuration cannot shadow or replace the enforced routing policy.
    */

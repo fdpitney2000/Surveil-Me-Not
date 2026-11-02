@@ -62,9 +62,9 @@ const {
   waitForKeyvRedisClient,
   warnOnUnreachableDeliveryPaths,
   createCodeApiUploadRegistry,
-  startSurvielReconciler,
+  startSurveilReconciler,
   createOpenRouterClientFromEnv,
-  resolveSurvielConfig,
+  resolveSurveilConfig,
   envManagementKeyExpiryWarning,
   createLandingHandler,
 } = require('@librechat/api');
@@ -242,15 +242,15 @@ const startServer = async () => {
   });
   configureAgentEventRuntime(appConfig?.endpoints?.agents?.eventDriven);
   warnOnUnreachableDeliveryPaths(appConfig);
-  const survielConfig = resolveSurvielConfig(appConfig?.surviel);
-  const survielKeyWarning = envManagementKeyExpiryWarning(survielConfig.mgmtKeyWarnDays);
-  if (survielKeyWarning) {
-    logger.warn(`[Surviel] ${survielKeyWarning.message}`);
+  const surveilConfig = resolveSurveilConfig(appConfig?.surveil);
+  const surveilKeyWarning = envManagementKeyExpiryWarning(surveilConfig.mgmtKeyWarnDays);
+  if (surveilKeyWarning) {
+    logger.warn(`[Surveil] ${surveilKeyWarning.message}`);
   }
-  startSurvielReconciler({
+  startSurveilReconciler({
     db: agentEventMethods,
     client: createOpenRouterClientFromEnv(),
-    config: survielConfig,
+    config: surveilConfig,
     logger,
   });
   initializeFileStorage(appConfig);
@@ -361,7 +361,7 @@ const startServer = async () => {
   app.use(metricsMiddleware);
   app.use(noIndex);
   /* Capture the raw Stripe webhook body before the global JSON parser consumes it. */
-  app.use('/api/surviel/stripe/webhook', express.raw({ type: 'application/json' }));
+  app.use('/api/surveil/stripe/webhook', express.raw({ type: 'application/json' }));
   app.use(excludeRumBodyParser(express.json({ limit: '3mb' })));
   app.use(excludeRumBodyParser(express.urlencoded({ extended: true, limit: '3mb' })));
   app.use(handleJsonParseError);
@@ -475,7 +475,7 @@ const startServer = async () => {
   app.use('/api/tags', routes.tags);
   app.use('/api/mcp', routes.mcp);
   app.use('/api/rum', routes.rum);
-  app.use('/api/surviel', routes.surviel);
+  app.use('/api/surveil', routes.surveil);
 
   app.use('/metrics', metricsRouter);
 

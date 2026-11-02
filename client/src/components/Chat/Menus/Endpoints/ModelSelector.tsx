@@ -10,7 +10,7 @@ import {
 } from './components';
 import { ModelSelectorProvider, useModelSelectorContext } from './ModelSelectorContext';
 import { useShortcutAriaKey, useShortcutHint } from '~/hooks/useKeyboardShortcuts';
-import { SurvielModelAccessProvider } from '~/components/Surviel/modelAccess';
+import { SurveilModelAccessProvider } from '~/components/Surveil/modelAccess';
 import { ModelSelectorChatProvider } from './ModelSelectorChatContext';
 import { getSelectedIcon, getDisplayValue } from './utils';
 import { CustomMenu as Menu } from './CustomMenu';
@@ -142,9 +142,9 @@ export default function ModelSelector({ startupConfig }: ModelSelectorProps) {
   return (
     <ModelSelectorChatProvider>
       <ModelSelectorProvider startupConfig={startupConfig}>
-        <SurvielModelAccessProvider>
+        <SurveilModelAccessProvider>
           <ModelSelectorContent />
-        </SurvielModelAccessProvider>
+        </SurveilModelAccessProvider>
       </ModelSelectorProvider>
     </ModelSelectorChatProvider>
   );
