@@ -108,6 +108,35 @@ describe('applyStripeEvent – invoice.paid', () => {
     expect(deps.provisionUser).toHaveBeenCalledWith('u1');
   });
 
+  it('takes the renewal date from the invoice line period (dahlia API shape)', async () => {
+    const { db, periods, subs } = makeDb();
+    const deps = makeDeps(db, makeStripe());
+
+    /** On the 2026-03-25.dahlia API the invoice's own period collapses to the
+     *  creation instant; the line item carries the real cycle. */
+    const result = await applyStripeEvent({
+      event: invoiceEvent({
+        period_start: 1000,
+        period_end: 1000,
+        lines: { data: [{ price: { id: PRICE_100 }, period: { start: 1000, end: 3000 } }] },
+      }),
+      deps,
+    });
+
+    expect(result.handled).toBe(true);
+    expect(periods[0].periodEnd).toEqual(new Date(3000 * 1000));
+    expect(subs.get('u1')?.renewsAt).toEqual(new Date(3000 * 1000));
+  });
+
+  it('falls back to invoice.period_end when no line period is present', async () => {
+    const { db, subs } = makeDb();
+    const deps = makeDeps(db, makeStripe());
+
+    await applyStripeEvent({ event: invoiceEvent(), deps });
+
+    expect(subs.get('u1')?.renewsAt).toEqual(new Date(2000 * 1000));
+  });
+
   it('ignores a duplicate event id', async () => {
     const { db, periods } = makeDb();
     const deps = makeDeps(db, makeStripe());
@@ -173,7 +202,7 @@ describe('applyStripeEvent – lifecycle', () => {
             id: 'sub_1',
             metadata: { userId: 'u1' },
             current_period_end: 5000,
-            items: { data: [{ price: { id: PRICE_100 } }] },
+            items: { data: [{ price: { id: PRICE_100 }, current_period_end: 6000 }] },
           },
         },
       } as unknown as Stripe.Event,
@@ -181,6 +210,7 @@ describe('applyStripeEvent – lifecycle', () => {
     });
 
     expect(subs.get('u1')?.status).toBe('canceled');
+    expect(subs.get('u1')?.renewsAt).toEqual(new Date(6000 * 1000));
     expect(deps.disableUserKeys).not.toHaveBeenCalled();
   });
 

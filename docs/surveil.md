@@ -150,7 +150,31 @@ endpoint, Tier 2 a non-training endpoint, Tier 1 reaches the catalog.
   in the UI; do not set provider keys for RAG/STT/TTS/image/OCR/Langfuse/OTel. See the audit
   table in `PLAN.md`.
 
-## 10. API surface
+## 10. Stripe dashboard steps (manual)
+
+Do these once per Stripe account (test mode now, live mode at launch):
+
+1. **Customer Portal** (Settings → Billing → Customer portal): enable it, allow
+   customers to switch plans (needed for upgrade/downgrade) and to cancel. Without
+   this, `POST /api/surveil/portal` sessions fail.
+2. **Webhook endpoint for production** (Developers → Webhooks → Add endpoint):
+   URL `https://<your-domain>/api/surveil/stripe/webhook`, events:
+   `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`,
+   `customer.subscription.updated`, `customer.subscription.deleted`,
+   `charge.refunded`, `charge.dispute.created`. Copy its signing secret into the VPS
+   `.env` as `STRIPE_WEBHOOK_SECRET` and set `SURVEIL_STRIPE_WEBHOOK_SOURCE=dashboard`.
+   (Local dev uses the CLI forwarder instead: `SURVEIL_STRIPE_WEBHOOK_SOURCE=cli` +
+   `STRIPE_WEBHOOK_SECRET_LOCAL` from `npm run surveil:stripe-local-secret`.)
+3. **Test clocks for renewal simulation** (no dashboard step; CLI only):
+   `stripe test_helpers test_clocks create --frozen-time $(date -u +%s)`, attach the
+   customer, then advance to trigger `invoice.paid` with
+   `billing_reason=subscription_cycle`.
+4. Prices already exist and match the configured IDs ($50/$100/$200 USD monthly in
+   the "luna helper 50-100-200" sandbox — verified via CLI 2026-11-02). `STRIPE_SECRET_KEY`
+   must belong to the same account as the prices or checkout fails with
+   "No such price".
+
+## 11. API surface
 
 | Route                               | Auth             | Purpose             |
 | ----------------------------------- | ---------------- | ------------------- |

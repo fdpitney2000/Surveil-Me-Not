@@ -99,12 +99,24 @@ interface InvoiceContext {
 type LooseInvoiceLine = {
   price?: { id?: string } | null;
   pricing?: { price_details?: { price?: string } } | null;
+  period?: { start?: number; end?: number } | null;
 };
 
 /** The price id on the first invoice line, tolerating both Stripe API shapes. */
 function linePriceId(invoice: LooseInvoice): string | undefined {
   const line = invoice.lines?.data?.[0] as LooseInvoiceLine | undefined;
   return line?.price?.id ?? line?.pricing?.price_details?.price;
+}
+
+/**
+ * The service period end on the first invoice line. On newer Stripe API versions the
+ * invoice's own `period_start`/`period_end` collapse to the creation instant on
+ * subscription invoices, while the line item still carries the real billing cycle.
+ */
+function linePeriodEnd(invoice: LooseInvoice): Date | undefined {
+  const line = invoice.lines?.data?.[0] as LooseInvoiceLine | undefined;
+  const end = line?.period?.end;
+  return typeof end === 'number' ? new Date(end * 1000) : undefined;
 }
 
 function invoiceContext(invoice: LooseInvoice): InvoiceContext {
@@ -114,7 +126,9 @@ function invoiceContext(invoice: LooseInvoice): InvoiceContext {
     customerId: idOf(invoice.customer),
     subscriptionId,
     priceId: linePriceId(invoice),
-    periodEnd: invoice.period_end ? new Date(invoice.period_end * 1000) : undefined,
+    periodEnd:
+      linePeriodEnd(invoice) ??
+      (invoice.period_end ? new Date(invoice.period_end * 1000) : undefined),
     billingReason: invoice.billing_reason ?? undefined,
     metadataUserId:
       invoice.metadata?.userId ??
@@ -147,6 +161,17 @@ async function resolveUserId(
 function isStale(subscription: ISurveilSubscription | null, eventCreated: number): boolean {
   const last = subscription?.lastEventCreatedAt;
   return last != null && eventCreated < last;
+}
+
+/**
+ * Renewal instant for a subscription. Newer Stripe API versions moved
+ * `current_period_end` from the subscription top level onto its items.
+ */
+function subscriptionPeriodEnd(subscription: Stripe.Subscription): Date | undefined {
+  const itemEnd = subscription.items?.data?.[0]?.current_period_end;
+  const topLevel = (subscription as unknown as { current_period_end?: number }).current_period_end;
+  const end = itemEnd ?? topLevel;
+  return typeof end === 'number' ? new Date(end * 1000) : undefined;
 }
 
 /**
@@ -269,13 +294,12 @@ export async function applyStripeEvent(options: {
       }
       const priceId = subscription.items?.data?.[0]?.price?.id;
       const plan = planForPriceId(priceId);
-      const periodEnd = (subscription as unknown as { current_period_end?: number })
-        .current_period_end;
+      const periodEnd = subscriptionPeriodEnd(subscription);
       await deps.db.upsertSurveilSubscription(
         { userId },
         {
           ...(plan ? { plan: plan.key, priceId: plan.priceId } : {}),
-          ...(periodEnd ? { renewsAt: new Date(periodEnd * 1000) } : {}),
+          ...(periodEnd ? { renewsAt: periodEnd } : {}),
           ...(subscription.status === 'active' ? { status: 'active' } : {}),
           lastEventCreatedAt: event.created,
         },
@@ -291,13 +315,12 @@ export async function applyStripeEvent(options: {
       if (isStale(existing, event.created)) {
         return { handled: false, duplicate: false, reason: 'stale' };
       }
-      const periodEnd = (subscription as unknown as { current_period_end?: number })
-        .current_period_end;
+      const periodEnd = subscriptionPeriodEnd(subscription);
       await deps.db.upsertSurveilSubscription(
         { userId },
         {
           status: 'canceled',
-          ...(periodEnd ? { renewsAt: new Date(periodEnd * 1000) } : {}),
+          ...(periodEnd ? { renewsAt: periodEnd } : {}),
           lastEventCreatedAt: event.created,
         },
       );
