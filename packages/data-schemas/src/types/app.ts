@@ -88,6 +88,8 @@ export interface AppConfig {
   registration?: TCustomConfig['registration'];
   /** Changing the registered email address */
   emailChange?: TCustomConfig['emailChange'];
+  /** Surviel-Me-Not hosted-subscription configuration (from the yaml `surviel` block) */
+  surviel?: TCustomConfig['surviel'];
   /** Passkey enrollment configuration */
   passkeys?: TCustomConfig['passkeys'];
   /** Actions configurations */

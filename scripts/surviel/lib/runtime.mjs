@@ -37,6 +37,10 @@ export async function connectDb() {
     process.exit(1);
   }
   await mongoose.connect(uri);
+  /** Register the mongoose models (Key, User, ...) that the methods query against;
+   *  the server does this at startup, scripts must do it themselves. */
+  const { createModels } = require('@librechat/data-schemas');
+  createModels(mongoose);
   const db = createMethods(mongoose);
   return { mongoose, db };
 }

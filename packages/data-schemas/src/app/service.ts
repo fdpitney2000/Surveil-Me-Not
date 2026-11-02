@@ -193,6 +193,7 @@ export const AppService = async (params?: {
   const actions = config.actions;
   const registration = config.registration ?? configDefaults.registration;
   const emailChange = config.emailChange;
+  const surviel = config.surviel;
   const interfaceConfig = await loadDefaultInterface({ config, configDefaults });
   const projects = chatProjectsConfigSchema.parse(config.projects ?? {});
   const turnstileConfig = loadTurnstileConfig(config, configDefaults);
@@ -218,6 +219,7 @@ export const AppService = async (params?: {
     projects,
     registration,
     emailChange,
+    surviel,
     passkeys: config.passkeys,
     transactions,
     filteredTools,
