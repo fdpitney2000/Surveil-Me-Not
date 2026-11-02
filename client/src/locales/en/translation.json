@@ -3415,6 +3415,8 @@
   "com_surviel_expire_notice": "Unused credits expire at the end of each period.",
   "com_surviel_low_balance": "Low balance — upgrade your plan to add credits.",
   "com_surviel_exhausted": "No credits left. Renews or upgrade to continue.",
+  "com_surviel_model_locked": "Subscribe to unlock this model",
+  "com_surviel_free_model": "Free",
   "com_surviel_manage": "Manage / Upgrade",
   "com_surviel_refresh": "Refresh",
   "com_surviel_tier_breakdown": "Per-tier spend",

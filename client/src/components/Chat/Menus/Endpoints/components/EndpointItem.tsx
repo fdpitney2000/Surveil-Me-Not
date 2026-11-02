@@ -8,6 +8,7 @@ import type { Endpoint } from '~/common';
 import { CustomMenu as Menu, CustomMenuItem as MenuItem, CustomMenuSeparator } from '../CustomMenu';
 import { renderEndpointModels, VIRTUALIZE_THRESHOLD } from './EndpointModelItem';
 import MarketplaceItem, { marketplaceSearchMatches } from './Marketplace';
+import { useSurvielModelAccess } from '~/components/Surviel/modelAccess';
 import { filterModels, shouldRenderEndpointOption } from '../utils';
 import { useModelSelectorContext } from '../ModelSelectorContext';
 import VirtualizedModelList from './VirtualizedModelList';
@@ -100,6 +101,7 @@ function EndpointMenuContent({
     useModelSelectorContext();
   const { modelSpec: selectedSpec } = selectedValues;
   const searchValue = endpointSearchValues[endpoint.value] || '';
+  const survielAccess = useSurvielModelAccess();
 
   const endpointSpecs = useMemo(() => {
     if (!modelSpecs || !modelSpecs.length) {
@@ -129,7 +131,10 @@ function EndpointMenuContent({
         assistantsMap,
       )
     : null;
-  const renderedModels = filteredModels ?? endpoint.models?.map((model) => model.name) ?? [];
+  const renderedModels = survielAccess.sortForEndpoint(
+    endpoint.value,
+    filteredModels ?? endpoint.models?.map((model) => model.name) ?? [],
+  );
   const showMarketplace =
     endpoint.showMarketplace === true && marketplaceSearchMatches(searchValue, localize);
   const hasSelectableRows = endpointSpecs.length > 0 || renderedModels.length > 0;

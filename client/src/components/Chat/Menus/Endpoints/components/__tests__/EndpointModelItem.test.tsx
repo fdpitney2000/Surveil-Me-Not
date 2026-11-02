@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import type { SurvielModelAccess } from '~/components/Surviel/modelAccess';
 import type { Endpoint, SelectedValues } from '~/common';
 import { EndpointModelItem } from '../EndpointModelItem';
 
@@ -28,6 +29,20 @@ jest.mock('~/hooks', () => ({
   useLocalize: () => (key: string) => key,
 }));
 
+const unlockedAccess: SurvielModelAccess = {
+  isSurvielEndpoint: () => false,
+  hasActiveSubscription: false,
+  isFreeModel: () => false,
+  isLocked: () => false,
+  sortForEndpoint: (_endpoint: string, modelIds: string[]) => modelIds,
+};
+
+let mockSurvielAccess: SurvielModelAccess = unlockedAccess;
+
+jest.mock('~/components/Surviel/modelAccess', () => ({
+  useSurvielModelAccess: () => mockSurvielAccess,
+}));
+
 jest.mock('~/components/Chat/Menus/Endpoints/useActiveItem', () => ({
   __esModule: true,
   default: () => ({ ref: { current: null }, isActive: false }),
@@ -55,6 +70,40 @@ const baseEndpoint: Endpoint = {
 describe('EndpointModelItem', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSurvielAccess = unlockedAccess;
+  });
+
+  it('blocks selection and marks the row when the model is locked (no subscription)', () => {
+    mockSelectedValues = { endpoint: 'anthropic', model: '', modelSpec: '' };
+    mockSurvielAccess = {
+      ...mockSurvielAccess,
+      isSurvielEndpoint: (value: string) => value === 'anthropic',
+      isLocked: () => true,
+    };
+    renderItem();
+
+    const menuItem = screen.getByRole('menuitem');
+    expect(menuItem).toHaveAttribute('aria-disabled', 'true');
+    expect(menuItem.className).toContain('cursor-not-allowed');
+
+    menuItem.click();
+    expect(mockHandleSelectModel).not.toHaveBeenCalled();
+  });
+
+  it('labels free tier models and keeps them selectable without a subscription', () => {
+    mockSelectedValues = { endpoint: 'anthropic', model: '', modelSpec: '' };
+    mockSurvielAccess = {
+      ...mockSurvielAccess,
+      isSurvielEndpoint: (value: string) => value === 'anthropic',
+      isFreeModel: () => true,
+      isLocked: () => false,
+    };
+    renderItem();
+
+    expect(screen.getByText('com_surviel_free_model')).toBeInTheDocument();
+
+    screen.getByRole('menuitem').click();
+    expect(mockHandleSelectModel).toHaveBeenCalledWith(baseEndpoint, 'claude-opus-4-6');
   });
 
   it('renders checkmark when model and endpoint match with no active spec', () => {

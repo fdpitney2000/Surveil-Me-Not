@@ -49,6 +49,39 @@ export interface TSurvielPricingResponse {
   fetchedAt: string | null;
 }
 
+/**
+ * Whether a model costs nothing to call. Prefers the pricing snapshot; falls back to
+ * OpenRouter's `:free` id suffix when pricing has not loaded (so free models are never
+ * locked behind a pricing outage).
+ */
+export function isSurvielFreeModel(
+  modelId: string,
+  models?: Record<string, TSurvielModelPrice> | null,
+): boolean {
+  const price = models?.[modelId];
+  if (price) {
+    return price.promptPerMillionUsd === 0 && price.completionPerMillionUsd === 0;
+  }
+  return modelId.endsWith(':free');
+}
+
+/**
+ * Stable partition: free models first, paid after, preserving the fetched order within
+ * each group. Applied to Surviel tier pickers so free users can navigate the models they
+ * can actually call; paid rows stay visible (locked until subscribed).
+ */
+export function sortSurvielModelsFreeFirst(
+  modelIds: string[],
+  models?: Record<string, TSurvielModelPrice> | null,
+): string[] {
+  const free: string[] = [];
+  const paid: string[] = [];
+  for (const modelId of modelIds) {
+    (isSurvielFreeModel(modelId, models) ? free : paid).push(modelId);
+  }
+  return [...free, ...paid];
+}
+
 export interface TSurvielCheckoutRequest {
   plan: TSurvielPlanKey;
 }
