@@ -26,6 +26,7 @@ const {
   createOpenIDSessionIdentity,
   resolveAppConfigForUser,
   commitPasswordReset,
+  provisionUserOnRegistration,
 } = require('@librechat/api');
 const {
   findUser,
@@ -45,6 +46,7 @@ const {
   generateRefreshToken,
 } = require('~/models');
 const { registerSchema } = require('~/strategies/validators');
+const keyStore = require('~/models');
 const { getAppConfig } = require('~/server/services/Config');
 const { sendEmail } = require('~/server/utils');
 
@@ -442,6 +444,21 @@ const registerUser = async (user, additionalData = {}) => {
       });
     } else {
       await updateUser(newUserId, { emailVerified: true });
+    }
+
+    /** Surviel: best-effort limit-0 OpenRouter keys so free users can browse the real
+     * catalog and use :free models. The module never throws and must stay inside its own
+     * try/catch regardless: the outer catch below deletes the just-created account on any
+     * error, and a provisioning outage must not cost a registration. */
+    try {
+      await provisionUserOnRegistration({
+        db: keyStore,
+        userId: newUserId.toString(),
+        rawConfig: appConfig?.surviel,
+        logger,
+      });
+    } catch (provisionError) {
+      logger.warn('[registerUser] Surviel key provisioning failed:', provisionError);
     }
 
     /** `userCreated` separates this from the identical 200 returned when the email is

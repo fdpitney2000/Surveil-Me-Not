@@ -62,6 +62,7 @@ jest.mock(
       },
       resolveAppConfigForUser: jest.fn(async (_getAppConfig, _user) => ({})),
       commitPasswordReset: jest.fn(),
+      provisionUserOnRegistration: jest.fn(async () => ({ provisioned: false, skipped: true })),
       createOpenIDSessionIdentity: jest.fn(
         ({ user, userId, openidSubject, tenantId, openidIssuer }) => {
           const normalize = (value) => {
@@ -170,6 +171,7 @@ let setAuthTokens;
 let setCloudFrontAuthCookies;
 let verifyEmail;
 let commitPasswordReset;
+let provisionUserOnRegistration;
 
 jest.isolateModules(() => {
   ({
@@ -177,6 +179,7 @@ jest.isolateModules(() => {
     isEmailDomainAllowed,
     resolveAppConfigForUser,
     commitPasswordReset,
+    provisionUserOnRegistration,
     setRefreshTokenCookie,
     setOpenIDMarkerCookies,
     setCloudFrontCookies,
@@ -711,6 +714,24 @@ describe('registerUser', () => {
     countUsers.mockResolvedValue(1);
     createUser.mockResolvedValue({ _id: 'new-user-id' });
     updateUser.mockResolvedValue({ _id: 'new-user-id' });
+  });
+
+  it('provisions Surviel keys for the newly created user (best effort)', async () => {
+    const result = await registerUser(registrationPayload);
+
+    expect(result.status).toBe(200);
+    expect(provisionUserOnRegistration).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'new-user-id' }),
+    );
+  });
+
+  it('keeps the account when Surviel provisioning throws unexpectedly', async () => {
+    provisionUserOnRegistration.mockRejectedValueOnce(new Error('unexpected'));
+
+    const result = await registerUser(registrationPayload);
+
+    expect(result.status).toBe(200);
+    expect(require('~/models').deleteUserById).not.toHaveBeenCalled();
   });
 
   it('ignores provider values from the public registration payload', async () => {

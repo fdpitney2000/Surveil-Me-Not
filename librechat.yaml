@@ -17,6 +17,9 @@ interface:
 # (hideUserProvidedKey: true). Choosing the endpoint chooses the tier.
 surviel:
   enabled: true
+  # Free users get limit-0 OpenRouter keys at signup so they can browse the real
+  # catalog and use :free models; payment raises limits via the reconciler.
+  provisionOnRegistration: true
   # The three tier definitions. Defaults exist in code; declared here for clarity.
   tiers:
     - tier: 1

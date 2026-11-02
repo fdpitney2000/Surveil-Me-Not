@@ -3894,6 +3894,8 @@ export const survielConfigSchema = z
     maxTokensCapThresholdUsd: z.number().nonnegative().default(2),
     /** Enable the optional server-side injection proxy (defense in depth). */
     proxyEnabled: z.boolean().default(false),
+    /** Provision limit-0 OpenRouter keys when a user registers (free-model browsing). */
+    provisionOnRegistration: z.boolean().default(false),
     /** The three tier definitions, mapped to custom endpoints by name. */
     tiers: z.array(survielTierSchema).default([
       {

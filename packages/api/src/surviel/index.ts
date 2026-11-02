@@ -31,6 +31,7 @@ export {
   ZDR_FIELDS,
 } from './openrouter/guardrails';
 export { provisionUserKeys, deprovisionUserKeys, setUserKeysDisabled } from './provision';
+export { provisionUserOnRegistration } from './registration';
 export type { SurvielKeyStore, ProvisionResult, ProvisionedTier } from './provision';
 export { deleteUserSurvielKeys } from './deletion';
 export { managementKeyExpiryWarning, envManagementKeyExpiryWarning } from './expiry';
