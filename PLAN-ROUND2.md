@@ -175,3 +175,27 @@ progress.**
 - 2026-11-02 Docs: librechat.example.yaml lever, docs/surveil.md free/paid behavior.
 - Pending: live verification (build running), Stripe E2E, Tier 2 filtering decision (D4),
   Phase 3 branding.
+- 2026-11-02 AppService root cause fixed (fde4159e1): appConfig.surviel now flows;
+  registration provisions 3 limit-0 keys; Tier 3 catalog verified guardrail-filtered
+  (289 of 415). Provision-script Key-model crash fixed.
+- 2026-11-02 Rename phase committed (8b7363def): surviel -> surveil everywhere
+  (routes now /api/surveil/*, env SURVEIL_*, scripts npm run surveil:*). Local .env
+  renamed; VPS .env renamed by user. Old surviel:* OpenRouter keys cleaned; new
+  guardrails bootstrapped as surveil:tier1-3.
+- 2026-11-02 Stripe E2E verified locally (c6baace01): CLI-created test subscription
+  ($50) -> invoice.paid -> period started, grantUSD 45 (0.9 x 50), keys' limits
+  raised, credits endpoint correct. Found + fixed dahlia-API period shape (invoice
+  top-level periods collapse; renewal now read from invoice line period /
+  items[0].current_period_end); renewsAt verified 2026-12-02. Stripe dashboard
+  checklist added to docs/surveil.md. Stripe checkout's own hosted page bot-checks
+  automated browsers (hcaptcha) — payment completed via CLI instead.
+- Pending: free-model chat round-trip, cancellation/payment-failure live paths
+  (unit-covered), test-clock renewal, Tier 2 filtering decision (D4), Phase 3
+  branding, pre-existing deleteUser.spec.js failures (6, fork drift).
+- 2026-11-03 User-reported regressions resolved: (a) plain local `up -d` EPERM-looped
+  mongod (root vs 501-owned data-node) — fixed with MONGO_UID/MONGO_GID levers in
+  deploy-surveil.yml (default 0:0 for VPS, 501/20 in local .env); (b) accounts created
+  before registration provisioning had no keys -> single free fallback model — all 6
+  keyless accounts provisioned via the repair script; (c) widget hidden by a stale
+  service-worker-cached /api/config — hard refresh fixes; widget verified rendering
+  (subscribed: credits card; new user: $50/$100/$200 plan picker).
