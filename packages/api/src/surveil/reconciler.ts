@@ -2,8 +2,8 @@ import type { ISurveilSubscription } from '@librechat/data-schemas';
 import type { SurveilWebhookLogger } from './stripe/webhook';
 import type { OpenRouterClient } from './openrouter/client';
 import type { ResolvedSurveilConfig } from './config';
-import type { TierUsageMicro } from './period';
-import { emptyTierUsage, remainingMicro } from './period';
+import type { UserKeyUsage } from './openrouter/usage';
+import { remainingMicro, keyLimitMicro } from './period';
 import { fetchUserUsage } from './openrouter/usage';
 import { microToUsd, usdToMicro } from './money';
 import { isLeader } from '~/cluster';
@@ -22,7 +22,6 @@ export interface ReconcileSummary {
   userId: string;
   remainingMicro: number;
   disabled: boolean;
-  activeTier: number;
 }
 
 /** Whether the subscription currently permits spending (grace and period-end rules applied). */
@@ -47,31 +46,23 @@ export function isSubscriptionUsable(
   }
 }
 
-/** Pick the tier with the largest usage increase since the last reconcile; else keep current. */
-export function chooseActiveTier(
-  subscription: ISurveilSubscription,
-  current: TierUsageMicro,
-): number {
-  const previous = subscription.usageByTier ?? emptyTierUsage();
-  const deltas = [
-    { tier: 1, delta: current.tier1 - previous.tier1 },
-    { tier: 2, delta: current.tier2 - previous.tier2 },
-    { tier: 3, delta: current.tier3 - previous.tier3 },
-  ];
-  let active = subscription.activeTier ?? 1;
-  let best = 0;
-  for (const entry of deltas) {
-    if (entry.delta > best) {
-      best = entry.delta;
-      active = entry.tier;
-    }
-  }
-  return active;
+/** Prefer the newest enabled key; fall back to the newest key so it can be disabled. */
+function pickPrimaryKey(keys: UserKeyUsage[]): UserKeyUsage | undefined {
+  if (keys.length === 0) return undefined;
+  const enabled = keys.filter((key) => !key.disabled);
+  const pool = enabled.length > 0 ? enabled : keys;
+  return [...pool].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )[0];
+}
+
+function isExpired(key: UserKeyUsage, now: Date): boolean {
+  return Boolean(key.expiresAt && new Date(key.expiresAt) <= now);
 }
 
 /**
- * Reconcile one subscription: read OpenRouter usage, compute remaining credits, apply key
- * limits for the configured mode, and enable/disable keys. Never throws on a per-key basis.
+ * Reconcile one subscription: read OpenRouter usage, compute remaining credits, keep one
+ * current key enabled with the remaining pool as its limit, and disable stale/legacy keys.
  */
 export async function reconcileSubscription(options: {
   db: SurveilReconcileDb;
@@ -84,39 +75,42 @@ export async function reconcileSubscription(options: {
   const now = options.now ?? new Date();
   const userId = String(subscription.userId);
 
-  const { usage, keys } = await fetchUserUsage({ client, userId });
-  const snapshot = subscription.snapshotByTier ?? emptyTierUsage();
+  const { usageMicro, keys } = await fetchUserUsage({ client, userId });
+  const snapshotMicro = subscription.snapshotUsageMicro ?? 0;
   const remaining = remainingMicro({
     grantMicro: subscription.grantMicroUsd ?? 0,
-    current: usage,
-    snapshot,
+    currentMicro: usageMicro,
+    snapshotMicro,
   });
 
   const usable = isSubscriptionUsable(subscription, now);
-  const activeTier = usable
-    ? chooseActiveTier(subscription, usage)
-    : (subscription.activeTier ?? 1);
-  const reserve = usdToMicro(config.lowBalanceThresholdUsd);
   const disableAll = !usable || remaining <= 0;
+  const primary = pickPrimaryKey(keys);
 
   for (const key of keys) {
-    if (disableAll) {
+    const isPrimary = primary?.hash === key.hash;
+    if (disableAll || !isPrimary || isExpired(key, now)) {
       if (!key.disabled) await client.updateKey(key.hash, { disabled: true });
       continue;
     }
     if (key.disabled) await client.updateKey(key.hash, { disabled: false });
-    const isActive = config.keyLimitMode === 'duplicate' || key.tier === activeTier;
-    const headroom = isActive ? remaining : Math.min(reserve, remaining);
-    const limitMicro = usdToMicro(key.usageUsd) + headroom;
+    const limitMicro = keyLimitMicro({
+      keyUsageMicro: usdToMicro(key.usageUsd),
+      remainingMicro: remaining,
+    });
     await client.updateKey(key.hash, { limit: microToUsd(limitMicro) });
   }
 
   await db.upsertSurveilSubscription(
     { userId },
-    { usageByTier: usage, activeTier, lastSyncedAt: now },
+    {
+      usageMicro,
+      lastSyncedAt: now,
+      ...(primary ? { keyHash: primary.hash } : {}),
+    },
   );
 
-  return { userId, remainingMicro: remaining, disabled: disableAll, activeTier };
+  return { userId, remainingMicro: remaining, disabled: disableAll };
 }
 
 /** Reconcile every known subscription. Per-user failures are logged and skipped. */

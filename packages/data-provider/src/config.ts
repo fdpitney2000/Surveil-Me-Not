@@ -4484,10 +4484,14 @@ export const surveilConfigSchema = z
     lowBalanceThresholdUsd: z.number().nonnegative().default(5),
     /** Days after a failed payment before keys are disabled. */
     graceDays: z.number().int().min(0).default(3),
-    /** Fraction of the plan price granted as monthly credits. */
-    creditGrantRatio: z.number().min(0).max(1).default(0.9),
-    /** How the shared pool is applied across the three per-tier keys. */
-    keyLimitMode: z.enum(['allocate', 'duplicate']).default('allocate'),
+    /** Percentage of the gross plan price retained by Surveil. */
+    retentionPct: z.number().min(0).max(100).default(20),
+    /** Stripe processing fee percentage applied to the gross price. */
+    stripeFeePct: z.number().min(0).default(2.9),
+    /** Stripe fixed processing fee in USD. */
+    stripeFeeFixedUsd: z.number().nonnegative().default(0.3),
+    /** OpenRouter credit-purchase fee percentage applied to the gross price. */
+    openrouterFeePct: z.number().min(0).default(5.5),
     /** Coarse per-key guardrail budget backstop in USD (calendar-month reset). */
     guardrailBackstopUsd: z.number().positive().default(180),
     /** Warn this many days before the OpenRouter management key expires. */
@@ -4498,7 +4502,7 @@ export const surveilConfigSchema = z
     maxTokensCapThresholdUsd: z.number().nonnegative().default(2),
     /** Enable the optional server-side injection proxy (defense in depth). */
     proxyEnabled: z.boolean().default(false),
-    /** Provision limit-0 OpenRouter keys when a user registers (free-model browsing). */
+    /** Provision a zero-limit OpenRouter key when a user registers (disabled for beta). */
     provisionOnRegistration: z.boolean().default(false),
     /** The three tier definitions, mapped to custom endpoints by name. */
     tiers: z.array(surveilTierSchema).default([

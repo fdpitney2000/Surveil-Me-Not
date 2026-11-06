@@ -37,6 +37,27 @@ export function grantMicro(priceMicro: number, ratio: number): number {
 }
 
 /**
+ * The amount loaded onto a customer's OpenRouter key for a paid period. This is the plan
+ * price minus Surveil's retention, the Stripe processing fee, and OpenRouter's
+ * credit-purchase fee. All percentages are applied to the gross price, matching the
+ * margin model in PLAN-BETA.md.
+ */
+export function netProceedsMicro(
+  priceMicro: number,
+  fees: {
+    retentionPct: number;
+    stripeFeePct: number;
+    stripeFeeFixedUsd: number;
+    openrouterFeePct: number;
+  },
+): number {
+  const retention = percentOfMicro(priceMicro, fees.retentionPct);
+  const stripe = stripeFeeMicro(priceMicro, fees.stripeFeePct, fees.stripeFeeFixedUsd);
+  const openrouter = percentOfMicro(priceMicro, fees.openrouterFeePct);
+  return Math.max(0, priceMicro - retention - stripe - openrouter);
+}
+
+/**
  * Net margin in micro-USD at a utilization level `u` (fraction of granted credits actually
  * spent). Cost is only incurred on spend, plus the OpenRouter credit-purchase fee.
  */

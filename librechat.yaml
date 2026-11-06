@@ -17,9 +17,9 @@ interface:
 # (hideUserProvidedKey: true). Choosing the endpoint chooses the tier.
 surveil:
   enabled: true
-  # Free users get limit-0 OpenRouter keys at signup so they can browse the real
-  # catalog and use :free models; payment raises limits via the reconciler.
-  provisionOnRegistration: true
+  # Beta: paid subscribers get a single provisioned key after invoice.paid. Free users
+  # use the shared free-model path, not per-user keys.
+  provisionOnRegistration: false
   # The three tier definitions. Defaults exist in code; declared here for clarity.
   tiers:
     - tier: 1

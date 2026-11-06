@@ -8,13 +8,6 @@ export type SurveilSubscriptionStatus =
   | 'canceled'
   | 'review';
 
-/** Cumulative OpenRouter lifetime usage per tier, in micro-USD. */
-export interface ISurveilTierUsage {
-  tier1: number;
-  tier2: number;
-  tier3: number;
-}
-
 export interface ISurveilSubscription extends Document {
   userId: Types.ObjectId;
   stripeCustomerId?: string;
@@ -24,12 +17,18 @@ export interface ISurveilSubscription extends Document {
   status: SurveilSubscriptionStatus;
   periodStart?: Date;
   renewsAt?: Date;
+  /** The net amount loaded onto the current OpenRouter key, in micro-USD. */
   grantMicroUsd: number;
-  /** Per-tier lifetime usage snapshot captured at period start. */
-  snapshotByTier: ISurveilTierUsage;
-  /** Last-known per-tier lifetime usage, refreshed by the reconciler. */
-  usageByTier: ISurveilTierUsage;
-  activeTier: number;
+  /** Cumulative key usage at the start of the current period, in micro-USD. */
+  snapshotUsageMicro: number;
+  /** Last-known cumulative key usage, refreshed by the reconciler, in micro-USD. */
+  usageMicro: number;
+  /** OpenRouter key hash for the current period. */
+  keyHash?: string;
+  /** OpenRouter key expiration (the current period end). */
+  keyExpiresAt?: Date | null;
+  /** The limit set on the current key, in micro-USD. */
+  keyLimitMicroUsd?: number;
   graceUntil?: Date | null;
   flaggedForReview: boolean;
   lastSyncedAt?: Date | null;
@@ -43,7 +42,7 @@ export interface ISurveilPeriod extends Document {
   invoiceId: string;
   plan?: string;
   grantMicroUsd: number;
-  snapshotByTier: ISurveilTierUsage;
+  snapshotUsageMicro: number;
   periodStart?: Date;
   periodEnd?: Date;
   kind: 'cycle' | 'proration';

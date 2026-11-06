@@ -2,12 +2,6 @@
 
 export type TSurveilPlanKey = '50' | '100' | '200';
 
-export interface TSurveilTierSpend {
-  tier1: number;
-  tier2: number;
-  tier3: number;
-}
-
 export interface TSurveilStartupTier {
   tier: number;
   endpoint: string;
@@ -29,7 +23,6 @@ export interface TSurveilCredits {
   grantUSD: number;
   spentUSD: number;
   remainingUSD: number;
-  perTier: TSurveilTierSpend;
   lastSyncedAt: string | null;
   lowBalance: boolean;
 }

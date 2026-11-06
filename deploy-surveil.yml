@@ -24,7 +24,6 @@ services:
     depends_on:
       - mongodb
       - meilisearch
-      - rag_api
     env_file:
       - .env
     extra_hosts:
@@ -36,7 +35,6 @@ services:
       - MEILI_HOST=http://meilisearch:7700
       - LIBRECHAT_TEMP_CREDENTIALS_PATH=/app/data/.env.temp
       - RAG_PORT=${RAG_PORT:-8000}
-      - RAG_API_URL=http://rag_api:${RAG_PORT:-8000}
       - PROXY=${PROXY:-}
       - HTTP_PROXY=${HTTP_PROXY:-}
       - HTTPS_PROXY=${HTTPS_PROXY:-}
@@ -82,9 +80,13 @@ services:
     volumes:
       - ./meili_data_v1.35.1:/meili_data
 
+  # RAG/file-search services are disabled by default until an OPENAI_API_KEY is configured.
+  # Enable with `--profile rag` (and `--profile proxy` on the VPS); set
+  # RAG_API_URL=http://rag_api:8000 in .env when enabling them.
   vectordb:
     container_name: surveil-vectordb
     image: pgvector/pgvector:0.8.0-pg15-trixie
+    profiles: ['rag']
     restart: always
     environment:
       POSTGRES_DB: mydatabase
@@ -96,6 +98,7 @@ services:
   rag_api:
     container_name: surveil-rag_api
     image: registry.librechat.ai/librechat-ai/librechat-rag-api-dev-lite:latest
+    profiles: ['rag']
     restart: always
     depends_on:
       - vectordb

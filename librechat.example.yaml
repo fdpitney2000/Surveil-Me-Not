@@ -1863,8 +1863,10 @@ endpoints:
 #   pricingTtlMs: 3600000
 #   lowBalanceThresholdUsd: 5
 #   graceDays: 3
-#   creditGrantRatio: 0.9
-#   keyLimitMode: allocate
+#   retentionPct: 20
+#   stripeFeePct: 2.9
+#   stripeFeeFixedUsd: 0.3
+#   openrouterFeePct: 5.5
 #   guardrailBackstopUsd: 180
 #   mgmtKeyWarnDays: 14
 #   maxTokensCap: 4096

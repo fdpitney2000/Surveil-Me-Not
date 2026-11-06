@@ -83,7 +83,6 @@ function makeDeps(db: SurveilWebhookDb, stripe: Stripe): StripeWebhookDeps {
     stripe,
     provisionUser: jest.fn(async () => {}),
     disableUserKeys: jest.fn(async () => {}),
-    snapshotUsage: jest.fn(async () => ({ tier1: 0, tier2: 0, tier3: 0 })),
     now: () => new Date('2025-06-01T00:00:00Z'),
   };
 }
@@ -93,7 +92,7 @@ describe('applyStripeEvent – invoice.paid', () => {
     process.env.STRIPE_PRICE_100_ID = PRICE_100;
   });
 
-  it('starts a period, grants 90% of the price, and provisions keys', async () => {
+  it('starts a period, loads net proceeds onto the key, and provisions it', async () => {
     const { db, periods, subs } = makeDb();
     const stripe = makeStripe();
     const deps = makeDeps(db, stripe);
@@ -102,10 +101,15 @@ describe('applyStripeEvent – invoice.paid', () => {
 
     expect(result.handled).toBe(true);
     expect(periods).toHaveLength(1);
-    expect(periods[0].grantMicroUsd).toBe(90_000_000);
-    expect(subs.get('u1')?.grantMicroUsd).toBe(90_000_000);
+    expect(periods[0].grantMicroUsd).toBe(71_300_000);
+    expect(periods[0].snapshotUsageMicro).toBe(0);
+    expect(subs.get('u1')?.grantMicroUsd).toBe(71_300_000);
     expect(subs.get('u1')?.status).toBe('active');
-    expect(deps.provisionUser).toHaveBeenCalledWith('u1');
+    expect(deps.provisionUser).toHaveBeenCalledWith('u1', {
+      keyLimitMicroUsd: 71_300_000,
+      expiresAt: new Date(2000 * 1000),
+      rotate: true,
+    });
   });
 
   it('takes the renewal date from the invoice line period (dahlia API shape)', async () => {
@@ -135,6 +139,21 @@ describe('applyStripeEvent – invoice.paid', () => {
     await applyStripeEvent({ event: invoiceEvent(), deps });
 
     expect(subs.get('u1')?.renewsAt).toEqual(new Date(2000 * 1000));
+  });
+
+  it('uses the next monthly anniversary when Stripe sends no period end', async () => {
+    const { db, subs } = makeDb();
+    const deps = makeDeps(db, makeStripe());
+
+    await applyStripeEvent({ event: invoiceEvent({ period_end: null }), deps });
+
+    expect(subs.get('u1')?.renewsAt).toEqual(new Date('2025-07-01T00:00:00.000Z'));
+    expect(subs.get('u1')?.keyExpiresAt).toEqual(new Date('2025-07-01T00:00:00.000Z'));
+    expect(deps.provisionUser).toHaveBeenCalledWith('u1', {
+      keyLimitMicroUsd: 71_300_000,
+      expiresAt: new Date('2025-07-01T00:00:00.000Z'),
+      rotate: true,
+    });
   });
 
   it('ignores a duplicate event id', async () => {

@@ -1,47 +1,54 @@
 import type { OpenRouterApiKey, OpenRouterClient } from './client';
-import type { TierUsageMicro } from '../period';
-import { openRouterKeyPrefix } from '../config';
-import { tierUsageFromUsd } from '../period';
-
-/** Parse a key name (`surveil:{userId}:{tier}`) into a tier number. */
-export function tierFromKeyName(name: string, userId: string): number | undefined {
-  const prefix = openRouterKeyPrefix(userId);
-  if (!name.startsWith(prefix)) return undefined;
-  const tier = Number(name.slice(prefix.length));
-  return Number.isInteger(tier) ? tier : undefined;
-}
+import { isOpenRouterKeyForUser, openRouterKeyName } from '../config';
+import { usdToMicro } from '../money';
 
 export interface UserKeyUsage {
-  tier: number;
   hash: string;
+  name: string;
   disabled: boolean;
   usageUsd: number;
+  createdAt: string;
+  expiresAt?: string | null;
 }
 
 export interface UserUsage {
-  usage: TierUsageMicro;
+  /** Cumulative usage across the user's current key and any legacy keys. */
+  usageUsd: number;
+  usageMicro: number;
   keys: UserKeyUsage[];
 }
 
-/** Fetch per-tier lifetime usage for a user's keys in one listing. */
+/**
+ * Fetch the user's OpenRouter keys and cumulative usage in one listing. The single-key
+ * model creates one remote key per customer, but legacy per-tier keys remain visible so
+ * they can be disabled and cleaned up.
+ */
 export async function fetchUserUsage(options: {
   client: OpenRouterClient;
   userId: string;
 }): Promise<UserUsage> {
   const { client, userId } = options;
-  const prefix = openRouterKeyPrefix(userId);
   const all: OpenRouterApiKey[] = await client.listAllKeys();
-  const mine = all.filter((key) => key.name.startsWith(prefix));
+  const mine = all.filter((key) => isOpenRouterKeyForUser(key.name, userId));
+  const currentName = openRouterKeyName(userId);
+  const currentKeys = mine.filter((key) => key.name === currentName);
+  const usageKeys = currentKeys.length > 0 ? currentKeys : mine;
 
-  const usd = { tier1: 0, tier2: 0, tier3: 0 };
+  let usageUsd = 0;
   const keys: UserKeyUsage[] = [];
-  for (const key of mine) {
-    const tier = tierFromKeyName(key.name, userId);
-    if (tier == null) continue;
-    if (tier === 1) usd.tier1 += key.usage;
-    else if (tier === 2) usd.tier2 += key.usage;
-    else if (tier === 3) usd.tier3 += key.usage;
-    keys.push({ tier, hash: key.hash, disabled: key.disabled, usageUsd: key.usage });
+  for (const key of usageKeys) {
+    usageUsd += key.usage;
   }
-  return { usage: tierUsageFromUsd(usd), keys };
+  for (const key of mine) {
+    keys.push({
+      hash: key.hash,
+      name: key.name,
+      disabled: key.disabled,
+      usageUsd: key.usage,
+      createdAt: key.created_at,
+      expiresAt: key.expires_at ?? null,
+    });
+  }
+
+  return { usageUsd, usageMicro: usdToMicro(usageUsd), keys };
 }

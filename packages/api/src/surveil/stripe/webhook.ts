@@ -2,15 +2,13 @@ import type { ISurveilSubscription } from '@librechat/data-schemas';
 import type Stripe from 'stripe';
 import type { ResolvedSurveilConfig } from '../config';
 import type { SurveilKeyStore } from '../provision';
-import type { TierUsageMicro } from '../period';
-import { openRouterKeyPrefix, resolveSurveilConfig } from '../config';
-import { provisionUserKeys, setUserKeysDisabled } from '../provision';
+import { resolveSurveilConfig } from '../config';
+import { provisionUserKey, setUserKeysDisabled } from '../provision';
 import { createOpenRouterClientFromEnv } from '../openrouter/client';
 import { createStripeClient, resolveWebhookSecret } from './client';
-import { emptyTierUsage, tierUsageFromUsd } from '../period';
 import { SurveilError, SurveilErrorCodes } from '../errors';
 import { planForPriceId } from '../plans';
-import { grantMicro } from '../money';
+import { netProceedsMicro } from '../money';
 
 /** The database methods the webhook needs (a subset of the aggregated methods). */
 export interface SurveilWebhookDb extends SurveilKeyStore {
@@ -25,7 +23,7 @@ export interface SurveilWebhookDb extends SurveilKeyStore {
     invoiceId: string;
     plan?: string | undefined;
     grantMicroUsd: number;
-    snapshotByTier: TierUsageMicro;
+    snapshotUsageMicro: number;
     periodStart?: Date | undefined;
     periodEnd?: Date | undefined;
     kind?: 'cycle' | 'proration' | undefined;
@@ -48,9 +46,11 @@ export interface StripeWebhookDeps {
   db: SurveilWebhookDb;
   config: ResolvedSurveilConfig;
   stripe: Stripe;
-  provisionUser: (userId: string) => Promise<void>;
+  provisionUser: (
+    userId: string,
+    options: { keyLimitMicroUsd: number; expiresAt?: Date; rotate: boolean },
+  ) => Promise<void>;
   disableUserKeys: (userId: string) => Promise<void>;
-  snapshotUsage: (userId: string) => Promise<TierUsageMicro>;
   now?: () => Date;
   logger?: SurveilWebhookLogger;
 }
@@ -174,6 +174,16 @@ function subscriptionPeriodEnd(subscription: Stripe.Subscription): Date | undefi
   return typeof end === 'number' ? new Date(end * 1000) : undefined;
 }
 
+/** Next monthly anniversary in UTC, clamping to the last valid day of the month. */
+export function nextMonthlyAnniversary(from: Date): Date {
+  const day = from.getUTCDate();
+  const next = new Date(from.getTime());
+  next.setUTCMonth(next.getUTCMonth() + 1, 1);
+  const lastDay = new Date(Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 0)).getUTCDate();
+  next.setUTCDate(Math.min(day, lastDay));
+  return next;
+}
+
 /**
  * Apply one verified Stripe event. Idempotent by `event.id`; tolerant of out-of-order
  * delivery by comparing `event.created` against the subscription's last applied event.
@@ -230,17 +240,27 @@ export async function applyStripeEvent(options: {
       }
 
       const plan = planForPriceId(context.priceId);
-      const grant = plan ? grantMicro(plan.priceMicro, deps.config.creditGrantRatio) : 0;
-      const snapshot = await deps.snapshotUsage(userId);
+      if (!plan) {
+        deps.logger?.warn('[Surveil] invoice.paid for an unknown price:', context.priceId);
+        return { handled: false, duplicate: false, reason: 'unknown-plan' };
+      }
+
+      const keyLimitMicroUsd = netProceedsMicro(plan.priceMicro, {
+        retentionPct: deps.config.retentionPct,
+        stripeFeePct: deps.config.stripeFeePct,
+        stripeFeeFixedUsd: deps.config.stripeFeeFixedUsd,
+        openrouterFeePct: deps.config.openrouterFeePct,
+      });
+      const periodEnd = context.periodEnd ?? nextMonthlyAnniversary(now);
 
       const { created } = await deps.db.createSurveilPeriod({
         userId,
         invoiceId: invoice.id,
-        ...(plan ? { plan: plan.key } : {}),
-        grantMicroUsd: grant,
-        snapshotByTier: snapshot,
+        plan: plan.key,
+        grantMicroUsd: keyLimitMicroUsd,
+        snapshotUsageMicro: 0,
         periodStart: now,
-        ...(context.periodEnd ? { periodEnd: context.periodEnd } : {}),
+        periodEnd,
         kind: 'cycle',
       });
 
@@ -251,19 +271,27 @@ export async function applyStripeEvent(options: {
             status: 'active',
             flaggedForReview: false,
             graceUntil: null,
-            ...(plan ? { plan: plan.key, priceId: plan.priceId } : {}),
+            plan: plan.key,
+            priceId: plan.priceId,
             ...(context.customerId ? { stripeCustomerId: context.customerId } : {}),
             ...(context.subscriptionId ? { stripeSubscriptionId: context.subscriptionId } : {}),
             periodStart: now,
-            ...(context.periodEnd ? { renewsAt: context.periodEnd } : {}),
-            grantMicroUsd: grant,
-            snapshotByTier: snapshot,
+            renewsAt: periodEnd,
+            grantMicroUsd: keyLimitMicroUsd,
+            snapshotUsageMicro: 0,
+            usageMicro: 0,
+            keyExpiresAt: periodEnd,
+            keyLimitMicroUsd,
             lastEventCreatedAt: event.created,
           },
         );
       }
 
-      await deps.provisionUser(userId);
+      await deps.provisionUser(userId, {
+        keyLimitMicroUsd,
+        expiresAt: periodEnd,
+        rotate: created,
+      });
       return { handled: true, duplicate: false };
     }
 
@@ -370,14 +398,6 @@ export async function applyStripeEvent(options: {
   }
 }
 
-/** Parse a key name (`surveil:{userId}:{tier}`) into a tier number. */
-function tierFromKeyName(name: string, userId: string): number | undefined {
-  const prefix = openRouterKeyPrefix(userId);
-  if (!name.startsWith(prefix)) return undefined;
-  const tier = Number(name.slice(prefix.length));
-  return Number.isInteger(tier) ? tier : undefined;
-}
-
 /** Build the default production dependencies for the webhook (env-driven). */
 export function createDefaultWebhookDeps(options: {
   db: SurveilWebhookDb;
@@ -394,29 +414,23 @@ export function createDefaultWebhookDeps(options: {
     config,
     stripe,
     logger: options.logger,
-    async provisionUser(userId) {
+    async provisionUser(userId, provisionOptions) {
       const client = createOpenRouterClientFromEnv();
       if (!client) return;
-      await provisionUserKeys({ client, db, userId, config });
+      await provisionUserKey({
+        client,
+        db,
+        userId,
+        config,
+        keyLimitMicroUsd: provisionOptions.keyLimitMicroUsd,
+        expiresAt: provisionOptions.expiresAt ?? null,
+        rotate: provisionOptions.rotate,
+      });
     },
     async disableUserKeys(userId) {
       const client = createOpenRouterClientFromEnv();
       if (!client) return;
       await setUserKeysDisabled({ client, userId, disabled: true });
-    },
-    async snapshotUsage(userId) {
-      const client = createOpenRouterClientFromEnv();
-      if (!client) return emptyTierUsage();
-      const prefix = openRouterKeyPrefix(userId);
-      const keys = (await client.listAllKeys()).filter((key) => key.name.startsWith(prefix));
-      const usage = { tier1: 0, tier2: 0, tier3: 0 };
-      for (const key of keys) {
-        const tier = tierFromKeyName(key.name, userId);
-        if (tier === 1) usage.tier1 += key.usage;
-        else if (tier === 2) usage.tier2 += key.usage;
-        else if (tier === 3) usage.tier3 += key.usage;
-      }
-      return tierUsageFromUsd(usage);
     },
   };
 }

@@ -3,7 +3,7 @@
  * Live, tiny-budget proof that each tier routes as advertised.
  * Usage: npm run surveil:verify-tiers -- <userId>
  *
- * Sends one max_tokens=1 request per tier using that user's provisioned keys, reads the
+ * Sends one max_tokens=1 request per tier using that user's shared provisioned key, reads the
  * OpenRouter routing metadata, and checks:
  *   - Tier 3 selects a Zero Data Retention endpoint for the model.
  *   - Tier 2 selects a non-training endpoint.

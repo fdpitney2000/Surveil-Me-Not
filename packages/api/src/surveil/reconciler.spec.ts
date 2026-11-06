@@ -1,7 +1,7 @@
 import type { ISurveilSubscription } from '@librechat/data-schemas';
 import type { OpenRouterClient } from './openrouter/client';
 import type { SurveilReconcileDb } from './reconciler';
-import { chooseActiveTier, isSubscriptionUsable, reconcileSubscription } from './reconciler';
+import { isSubscriptionUsable, reconcileSubscription } from './reconciler';
 import { resolveSurveilConfig } from './config';
 import { usdToMicro } from './money';
 
@@ -10,24 +10,37 @@ function makeSubscription(overrides: Partial<ISurveilSubscription> = {}): ISurve
     userId: 'u1',
     status: 'active',
     grantMicroUsd: usdToMicro(10),
-    snapshotByTier: { tier1: 0, tier2: 0, tier3: 0 },
-    usageByTier: { tier1: 0, tier2: 0, tier3: 0 },
-    activeTier: 1,
+    snapshotUsageMicro: 0,
+    usageMicro: 0,
     flaggedForReview: false,
     ...overrides,
   } as unknown as ISurveilSubscription;
 }
 
-function makeClient(usages: Record<number, number>, disabled: Record<number, boolean> = {}) {
+function makeClient(
+  keys: Array<{ hash: string; name: string; usage: number; disabled?: boolean; createdAt?: string }>,
+) {
   const updates: Array<{ hash: string; body: Record<string, unknown> }> = [];
-  const keys = [1, 2, 3].map((tier) => ({
-    hash: `h${tier}`,
-    name: `surveil:u1:${tier}`,
-    usage: usages[tier] ?? 0,
-    disabled: disabled[tier] ?? false,
+  const all = keys.map((key, index) => ({
+    hash: key.hash,
+    name: key.name,
+    usage: key.usage,
+    disabled: key.disabled ?? false,
+    created_at: key.createdAt ?? `2025-01-0${index + 1}T00:00:00Z`,
+    expires_at: null,
+    label: '',
+    limit: null,
+    limit_remaining: null,
+    limit_reset: null,
+    include_byok_in_limit: false,
+    usage_daily: 0,
+    usage_weekly: 0,
+    usage_monthly: 0,
+    byok_usage: 0,
+    updated_at: null,
   }));
   const client = {
-    listAllKeys: jest.fn(async () => keys),
+    listAllKeys: jest.fn(async () => all),
     updateKey: jest.fn(async (hash: string, body: Record<string, unknown>) => {
       updates.push({ hash, body });
     }),
@@ -48,7 +61,7 @@ function makeDb() {
   return { db, getSaved: () => saved };
 }
 
-const config = resolveSurveilConfig({ enabled: true, keyLimitMode: 'allocate' });
+const config = resolveSurveilConfig({ enabled: true });
 
 describe('isSubscriptionUsable', () => {
   const now = new Date('2025-06-01T00:00:00Z');
@@ -91,61 +104,70 @@ describe('isSubscriptionUsable', () => {
   });
 });
 
-describe('chooseActiveTier', () => {
-  it('picks the tier with the largest usage increase', () => {
-    const subscription = makeSubscription({
-      activeTier: 1,
-      usageByTier: { tier1: 1_000_000, tier2: 0, tier3: 0 },
-    });
-    const tier = chooseActiveTier(subscription, { tier1: 1_100_000, tier2: 0, tier3: 5_000_000 });
-    expect(tier).toBe(3);
-  });
-});
-
-describe('reconcileSubscription – allocate mode', () => {
-  it('gives the pool to the active tier and a reserve to others', async () => {
+describe('reconcileSubscription – single key', () => {
+  it('sets the current key limit to usage plus remaining and keeps it enabled', async () => {
     const { db } = makeDb();
-    const { client, updates } = makeClient({ 1: 1, 2: 0, 3: 0 });
+    const { client, updates } = makeClient([
+      { hash: 'h1', name: 'surveil:u1', usage: 1 },
+    ]);
     const subscription = makeSubscription({ grantMicroUsd: usdToMicro(10) });
 
     await reconcileSubscription({ db, client, config, subscription });
 
-    const byHash = new Map(updates.map((u) => [u.hash, u.body]));
-    expect(byHash.get('h1')?.limit).toBeCloseTo(10); // 1 used + 9 remaining
-    expect(byHash.get('h2')?.limit).toBeCloseTo(5); // reserve = lowBalanceThresholdUsd
-    expect(byHash.get('h3')?.limit).toBeCloseTo(5);
+    expect(updates).toContainEqual({ hash: 'h1', body: { limit: 10 } });
     expect(updates.some((u) => u.hash === 'h1' && u.body.disabled === true)).toBe(false);
   });
 
-  it('disables all keys when credits are exhausted', async () => {
+  it('disables the key when credits are exhausted', async () => {
     const { db } = makeDb();
-    const { client, updates } = makeClient({ 1: 10, 2: 0, 3: 0 });
+    const { client, updates } = makeClient([
+      { hash: 'h1', name: 'surveil:u1', usage: 10 },
+    ]);
     const subscription = makeSubscription({ grantMicroUsd: usdToMicro(10) });
 
     const summary = await reconcileSubscription({ db, client, config, subscription });
 
     expect(summary.disabled).toBe(true);
-    expect(updates.every((u) => u.body.disabled === true)).toBe(true);
+    expect(updates).toContainEqual({ hash: 'h1', body: { disabled: true } });
   });
 
-  it('disables all keys for a review status', async () => {
+  it('disables the key for a review status', async () => {
     const { db } = makeDb();
-    const { client, updates } = makeClient({ 1: 0, 2: 0, 3: 0 });
+    const { client, updates } = makeClient([
+      { hash: 'h1', name: 'surveil:u1', usage: 0 },
+    ]);
     const subscription = makeSubscription({ status: 'review', flaggedForReview: true });
 
     await reconcileSubscription({ db, client, config, subscription });
-    expect(updates.every((u) => u.body.disabled === true)).toBe(true);
+    expect(updates).toContainEqual({ hash: 'h1', body: { disabled: true } });
   });
 
-  it('re-enables keys and persists usage after a renewal', async () => {
+  it('re-enables the key and persists usage after a renewal', async () => {
     const { db, getSaved } = makeDb();
-    const { client, updates } = makeClient({ 1: 0, 2: 0, 3: 0 }, { 1: true, 2: true, 3: true });
+    const { client, updates } = makeClient([
+      { hash: 'h1', name: 'surveil:u1', usage: 0, disabled: true },
+    ]);
     const subscription = makeSubscription();
 
     await reconcileSubscription({ db, client, config, subscription });
 
-    expect(updates.some((u) => u.body.disabled === false)).toBe(true);
-    expect(getSaved().usageByTier).toEqual({ tier1: 0, tier2: 0, tier3: 0 });
+    expect(updates).toContainEqual({ hash: 'h1', body: { disabled: false } });
+    expect(updates).toContainEqual({ hash: 'h1', body: { limit: 10 } });
+    expect(getSaved().usageMicro).toBe(0);
     expect(getSaved().lastSyncedAt).toBeInstanceOf(Date);
+  });
+
+  it('disables legacy per-tier keys and only counts the current key', async () => {
+    const { db } = makeDb();
+    const { client, updates } = makeClient([
+      { hash: 'h1', name: 'surveil:u1', usage: 1, createdAt: '2025-02-01T00:00:00Z' },
+      { hash: 'legacy', name: 'surveil:u1:2', usage: 5, createdAt: '2025-01-01T00:00:00Z' },
+    ]);
+    const subscription = makeSubscription({ grantMicroUsd: usdToMicro(10) });
+
+    await reconcileSubscription({ db, client, config, subscription });
+
+    expect(updates).toContainEqual({ hash: 'legacy', body: { disabled: true } });
+    expect(updates).toContainEqual({ hash: 'h1', body: { limit: 10 } });
   });
 });

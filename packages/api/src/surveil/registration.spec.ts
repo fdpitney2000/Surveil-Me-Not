@@ -1,22 +1,11 @@
-import type { OpenRouterApiKey, OpenRouterClient, OpenRouterGuardrail } from './openrouter/client';
+import type { OpenRouterApiKey, OpenRouterClient } from './openrouter/client';
 import type { SurveilKeyStore } from './provision';
 import { provisionUserOnRegistration } from './registration';
-
-function guardrails(): OpenRouterGuardrail[] {
-  return [1, 2, 3].map((tier) => ({
-    id: `grd_${tier}`,
-    name: `surveil:tier${tier}`,
-    limit_usd: 180,
-    reset_interval: 'monthly' as const,
-  }));
-}
 
 function makeClient(failOn?: 'createKey') {
   const keys: OpenRouterApiKey[] = [];
   let counter = 0;
-  const assigned: Array<{ guardrailId: string; hashes: string[] }> = [];
   const client = {
-    listGuardrails: jest.fn(async () => guardrails()),
     listAllKeys: jest.fn(async () => [...keys]),
     listKeys: jest.fn(async () => [...keys]),
     createKey: jest.fn(async ({ name }: { name: string }) => {
@@ -40,6 +29,7 @@ function makeClient(failOn?: 'createKey') {
         byok_usage: 0,
         created_at: '2025-01-01T00:00:00Z',
         updated_at: null,
+        expires_at: null,
       };
       keys.push(data);
       return { key: `sk-or-...ext-${counter}`, data };
@@ -48,12 +38,8 @@ function makeClient(failOn?: 'createKey') {
       const index = keys.findIndex((k) => k.hash === hash);
       if (index >= 0) keys.splice(index, 1);
     }),
-    assignKeysToGuardrail: jest.fn(async (guardrailId: string, hashes: string[]) => {
-      assigned.push({ guardrailId, hashes });
-      return hashes.length;
-    }),
   } as unknown as OpenRouterClient;
-  return { client, keys, assigned };
+  return { client, keys };
 }
 
 function makeStore() {
@@ -77,8 +63,8 @@ function makeStore() {
 describe('provisionUserOnRegistration', () => {
   const userId = 'user_abc123';
 
-  it('provisions one limit-0 key per tier and stores them encrypted', async () => {
-    const { client, keys, assigned } = makeClient();
+  it('provisions one limit-0 key and stores it under every tier endpoint', async () => {
+    const { client, keys } = makeClient();
     const { db, values } = makeStore();
     const result = await provisionUserOnRegistration({
       db,
@@ -87,13 +73,9 @@ describe('provisionUserOnRegistration', () => {
       rawConfig: { enabled: true, provisionOnRegistration: true },
     });
     expect(result).toEqual({ provisioned: true, skipped: false });
-    expect(keys.map((k) => k.name)).toEqual([
-      `surveil:${userId}:1`,
-      `surveil:${userId}:2`,
-      `surveil:${userId}:3`,
-    ]);
-    expect(keys.every((k) => k.limit === 0)).toBe(true);
-    expect(assigned).toHaveLength(3);
+    expect(keys.map((k) => k.name)).toEqual([`surveil:${userId}`]);
+    expect(keys[0].limit).toBe(0);
+    expect(keys[0].expires_at).toBeNull();
     /** Plaintext key material landed in the store under each tier endpoint name. */
     expect(values.get(`${userId}:Max Model Selection`)).toContain('sk-or-');
     expect(values.get(`${userId}:Commercial Privacy`)).toContain('sk-or-');

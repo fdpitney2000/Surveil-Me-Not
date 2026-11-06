@@ -1,5 +1,4 @@
 import React from 'react';
-import userEvent from '@testing-library/user-event';
 import { render, screen } from '@testing-library/react';
 import type { TSurveilCredits } from 'librechat-data-provider';
 import CreditsWidget from '../CreditsWidget';
@@ -9,10 +8,9 @@ const activeCredits: TSurveilCredits = {
   status: 'active',
   periodStart: '2025-06-01T00:00:00.000Z',
   renewsAt: '2025-07-01T00:00:00.000Z',
-  grantUSD: 90,
+  grantUSD: 71.3,
   spentUSD: 12.5,
-  remainingUSD: 77.5,
-  perTier: { tier1: 1, tier2: 2, tier3: 9.5 },
+  remainingUSD: 58.8,
   lastSyncedAt: '2025-06-10T00:00:00.000Z',
   lowBalance: false,
 };
@@ -25,7 +23,6 @@ const noSub: TSurveilCredits = {
   grantUSD: 0,
   spentUSD: 0,
   remainingUSD: 0,
-  perTier: { tier1: 0, tier2: 0, tier3: 0 },
   lastSyncedAt: null,
   lowBalance: false,
 };
@@ -61,15 +58,13 @@ describe('CreditsWidget', () => {
 
   it('shows the remaining balance and used amount', () => {
     render(<CreditsWidget />);
-    expect(screen.getByText('$77.50')).toBeInTheDocument();
+    expect(screen.getByText('$58.80')).toBeInTheDocument();
     expect(screen.getByText(/com_surveil_credits_used/)).toBeInTheDocument();
   });
 
-  it('reveals the per-tier breakdown on click', async () => {
+  it('does not render a per-tier breakdown', () => {
     render(<CreditsWidget />);
     expect(screen.queryByText('com_surveil_tier_breakdown')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByText('com_surveil_credits_remaining'));
-    expect(screen.getByText('com_surveil_tier_breakdown')).toBeInTheDocument();
   });
 
   it('shows a subscribe prompt when there is no subscription', () => {

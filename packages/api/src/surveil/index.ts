@@ -6,6 +6,7 @@ export {
   tierForEndpoint,
   openRouterKeyName,
   openRouterKeyPrefix,
+  isOpenRouterKeyForUser,
   GUARDRAIL_NAMES,
 } from './config';
 export type { ResolvedSurveilConfig } from './config';
@@ -30,9 +31,9 @@ export {
   guardrailSpec,
   ZDR_FIELDS,
 } from './openrouter/guardrails';
-export { provisionUserKeys, deprovisionUserKeys, setUserKeysDisabled } from './provision';
+export { provisionUserKey, deprovisionUserKeys, setUserKeysDisabled } from './provision';
 export { provisionUserOnRegistration } from './registration';
-export type { SurveilKeyStore, ProvisionResult, ProvisionedTier } from './provision';
+export type { SurveilKeyStore, ProvisionResult, ProvisionedKey } from './provision';
 export { deleteUserSurveilKeys } from './deletion';
 export { managementKeyExpiryWarning, envManagementKeyExpiryWarning } from './expiry';
 export type { ExpiryWarning } from './expiry';
@@ -46,25 +47,22 @@ export {
   percentOfMicro,
   stripeFeeMicro,
   grantMicro,
+  netProceedsMicro,
   netMarginMicro,
 } from './money';
 export {
-  emptyTierUsage,
-  tierUsageFromUsd,
-  totalUsageMicro,
   periodSpendMicro,
   remainingMicro,
   keyLimitMicro,
   shouldDisableForCredits,
 } from './period';
-export type { TierUsageMicro, KeyLimitMode } from './period';
 /* Plans */
 export { resolvePlans, planForPriceId } from './plans';
 export type { SurveilPlan, PlanKey } from './plans';
 /* Stripe */
 export { assertStripeTestMode, createStripeClient, resolveWebhookSecret } from './stripe/client';
 export { createCheckoutSession, createPortalSession } from './stripe/checkout';
-export { applyStripeEvent, handleStripeWebhook, createDefaultWebhookDeps } from './stripe/webhook';
+export { applyStripeEvent, handleStripeWebhook, createDefaultWebhookDeps, nextMonthlyAnniversary } from './stripe/webhook';
 export type {
   StripeWebhookDeps,
   SurveilWebhookDb,
@@ -72,14 +70,13 @@ export type {
   ApplyResult,
 } from './stripe/webhook';
 /* Usage, reconciler, credits, pricing */
-export { fetchUserUsage, tierFromKeyName } from './openrouter/usage';
+export { fetchUserUsage } from './openrouter/usage';
 export type { UserUsage, UserKeyUsage } from './openrouter/usage';
 export {
   reconcileSubscription,
   reconcileAll,
   startSurveilReconciler,
   isSubscriptionUsable,
-  chooseActiveTier,
 } from './reconciler';
 export type { SurveilReconcileDb, ReconcileSummary } from './reconciler';
 export { buildCreditsResponse } from './credits';

@@ -1,9 +1,10 @@
 # Surveil-Me-Not — local runbook
 
-Privacy-tiered hosted LibreChat. Users subscribe monthly, receive a USD credit grant, and
+Privacy-tiered hosted LibreChat. Users subscribe monthly, receive a USD credit balance, and
 choose a privacy tier by choosing a model endpoint. Spend is metered from OpenRouter's
-reported per-key usage; privacy is enforced by OpenRouter key guardrails plus a server-injected
-`provider` block. See `PLAN.md` for the design and `AGENTS.md` for contribution rules.
+reported per-key usage. Each customer has one OpenRouter key; tier privacy is enforced by the
+server-injected `provider` block on that tier's custom endpoint. See `PLAN-BETA.md` for the
+beta design and `AGENTS.md` for contribution rules.
 
 ## 1. Prerequisites
 
@@ -26,6 +27,7 @@ STRIPE_PRICE_50_ID=price_1UCmtfR35hoGDQ2ENiQn79YJ
 STRIPE_PRICE_100_ID=price_1UCmtfR35hoGDQ2EwXZj3QCg
 STRIPE_PRICE_200_ID=price_1UCmtfR35hoGDQ2E5eCt2WRO
 OPENROUTER_FEE_PCT=5.5
+RETENTION_PCT=20
 ```
 
 Verify presence without printing values:
@@ -36,26 +38,24 @@ npm run surveil:check-env
 
 The app refuses to start with a live Stripe key unless `SURVEIL_ALLOW_LIVE_STRIPE=true`.
 
-## 3. Bootstrap OpenRouter (once)
+## 3. Bootstrap OpenRouter (optional)
 
-Creates/converges the three tier guardrails, enables the filtered model catalog, and warns
-about management-key expiry:
+`openrouter-bootstrap` still converges the legacy per-tier guardrails and enables the
+filtered model catalog for older deployments. The beta single-key path does not assign keys
+to guardrails; tier privacy comes from each endpoint's `addParams`. The check-key command
+and management-key expiry warning remain useful:
 
 ```
 npm run surveil:openrouter-bootstrap
 npm run surveil:openrouter-check-key
 ```
 
-Guardrails (Default Workspace): `surveil:tier1`/`tier2` (spend limit only) and
-`surveil:tier3` (all five `enforce_zdr_*` flags). Tier 2 relies on the request-level
-`provider.data_collection="deny"`; Tier 3 also sends `provider.zdr=true`.
-
 ## 4. Run the stack
 
 ```
 npm ci
 npm run build:data-provider && npm run build:data-schemas && npm run build:api
-docker compose -p surveil up -d --build   # surveil-* stack, http://localhost:3080
+docker compose -p surveil -f deploy-surveil.yml up -d --build   # http://localhost:3080
 ```
 
 `docker-compose.override.yml` builds this repo (the upstream compose only pulls a prebuilt

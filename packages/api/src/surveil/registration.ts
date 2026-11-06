@@ -3,7 +3,7 @@ import type { SurveilWebhookLogger } from './stripe/webhook';
 import type { OpenRouterClient } from './openrouter/client';
 import type { SurveilKeyStore } from './provision';
 import { createOpenRouterClientFromEnv } from './openrouter/client';
-import { provisionUserKeys } from './provision';
+import { provisionUserKey } from './provision';
 import { resolveSurveilConfig } from './config';
 
 /**
@@ -34,7 +34,14 @@ export async function provisionUserOnRegistration(options: {
   }
 
   try {
-    await provisionUserKeys({ client, db: options.db, userId: options.userId, config });
+    await provisionUserKey({
+      client,
+      db: options.db,
+      userId: options.userId,
+      config,
+      keyLimitMicroUsd: 0,
+      expiresAt: null,
+    });
     return { provisioned: true, skipped: false };
   } catch (error) {
     options.logger?.warn(

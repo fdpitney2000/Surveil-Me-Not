@@ -1,57 +1,50 @@
-import type { OpenRouterApiKey, OpenRouterClient, OpenRouterGuardrail } from './openrouter/client';
+import type { OpenRouterApiKey, OpenRouterClient } from './openrouter/client';
 import type { SurveilKeyStore } from './provision';
 import { resolveSurveilConfig } from './config';
-import { provisionUserKeys } from './provision';
-
-function guardrails(): OpenRouterGuardrail[] {
-  return [1, 2, 3].map((tier) => ({
-    id: `grd_${tier}`,
-    name: `surveil:tier${tier}`,
-    limit_usd: 180,
-    reset_interval: 'monthly' as const,
-  }));
-}
+import { provisionUserKey } from './provision';
 
 function makeClient() {
   const keys: OpenRouterApiKey[] = [];
   let counter = 0;
-  const assigned: Array<{ guardrailId: string; hashes: string[] }> = [];
   const client = {
-    listGuardrails: jest.fn(async () => guardrails()),
     listAllKeys: jest.fn(async () => [...keys]),
-    listKeys: jest.fn(async () => [...keys]),
-    createKey: jest.fn(async ({ name }: { name: string }) => {
-      counter += 1;
-      const data: OpenRouterApiKey = {
-        hash: `hash_${counter}`,
-        name,
-        label: `sk-or-v1-...${counter}`,
-        disabled: false,
-        limit: 0,
-        limit_remaining: 0,
-        limit_reset: null,
-        include_byok_in_limit: false,
-        usage: 0,
-        usage_daily: 0,
-        usage_weekly: 0,
-        usage_monthly: 0,
-        byok_usage: 0,
-        created_at: '2025-01-01T00:00:00Z',
-        updated_at: null,
-      };
-      keys.push(data);
-      return { key: `sk-or-v1-plaintext-${counter}`, data };
-    }),
+    createKey: jest.fn(
+      async (input: {
+        name: string;
+        limit?: number | null;
+        limit_reset?: 'daily' | 'weekly' | 'monthly' | null;
+        expires_at?: string | null;
+      }) => {
+        counter += 1;
+        const data: OpenRouterApiKey = {
+          hash: `hash_${counter}`,
+          name: input.name,
+          label: `sk-or-v1-test-${counter}`,
+          disabled: false,
+          limit: input.limit ?? 0,
+          limit_remaining: input.limit ?? 0,
+          limit_reset: input.limit_reset ?? null,
+          include_byok_in_limit: false,
+          usage: 0,
+          usage_daily: 0,
+          usage_weekly: 0,
+          usage_monthly: 0,
+          byok_usage: 0,
+          created_at: `2025-01-0${counter}T00:00:00Z`,
+          updated_at: null,
+          expires_at: input.expires_at ?? null,
+        };
+        keys.push(data);
+        return { key: `sk-or-v1-test-${counter}`, data };
+      },
+    ),
     deleteKey: jest.fn(async (hash: string) => {
       const index = keys.findIndex((k) => k.hash === hash);
       if (index >= 0) keys.splice(index, 1);
     }),
-    assignKeysToGuardrail: jest.fn(async (guardrailId: string, hashes: string[]) => {
-      assigned.push({ guardrailId, hashes });
-      return hashes.length;
-    }),
+    updateKey: jest.fn(),
   } as unknown as OpenRouterClient;
-  return { client, keys, assigned };
+  return { client, keys };
 }
 
 function makeStore() {
@@ -72,44 +65,114 @@ function makeStore() {
   return { db, values };
 }
 
-describe('provisionUserKeys', () => {
+describe('provisionUserKey', () => {
   const config = resolveSurveilConfig({ enabled: true });
+  const expiresAt = new Date('2026-02-05T00:00:00.000Z');
 
-  it('creates one key per tier, stores the plaintext, and assigns guardrails', async () => {
-    const { client, assigned } = makeClient();
+  it('creates one key, stores the plaintext under every tier endpoint, and sets limit/expiry', async () => {
+    const { client } = makeClient();
     const { db, values } = makeStore();
 
-    const result = await provisionUserKeys({ client, db, userId: 'user1', config });
+    const result = await provisionUserKey({
+      client,
+      db,
+      userId: 'user1',
+      config,
+      keyLimitMicroUsd: 35_500_000,
+      expiresAt,
+    });
 
-    expect(result.tiers).toHaveLength(3);
-    expect(client.createKey).toHaveBeenCalledTimes(3);
-    expect(assigned).toHaveLength(3);
-    expect(assigned.map((a) => a.guardrailId).sort()).toEqual(['grd_1', 'grd_2', 'grd_3']);
-    expect(values.get('user1:Enterprise Vault')).toContain('sk-or-v1-plaintext');
+    expect(result.key?.keyName).toBe('surveil:user1');
+    expect(client.createKey).toHaveBeenCalledTimes(1);
+    expect(client.createKey).toHaveBeenCalledWith({
+      name: 'surveil:user1',
+      limit: 35.5,
+      limit_reset: null,
+      expires_at: expiresAt.toISOString(),
+    });
+    for (const tier of config.tiers) {
+      expect(values.get(`user1:${tier.endpoint}`)).toContain('sk-or-v1-test-1');
+    }
   });
 
-  it('is idempotent: a second run creates nothing', async () => {
+  it('does not rotate when asked to ensure an existing key', async () => {
     const { client } = makeClient();
     const { db } = makeStore();
 
-    await provisionUserKeys({ client, db, userId: 'user1', config });
-    await provisionUserKeys({ client, db, userId: 'user1', config });
+    await provisionUserKey({
+      client,
+      db,
+      userId: 'user1',
+      config,
+      keyLimitMicroUsd: 35_500_000,
+      expiresAt,
+    });
+    await provisionUserKey({
+      client,
+      db,
+      userId: 'user1',
+      config,
+      keyLimitMicroUsd: 35_500_000,
+      expiresAt,
+      rotate: false,
+    });
 
-    expect(client.createKey).toHaveBeenCalledTimes(3);
+    expect(client.createKey).toHaveBeenCalledTimes(1);
+  });
+
+  it('rotates a new period and deletes the previous key', async () => {
+    const { client } = makeClient();
+    const { db } = makeStore();
+
+    await provisionUserKey({
+      client,
+      db,
+      userId: 'user1',
+      config,
+      keyLimitMicroUsd: 35_500_000,
+      expiresAt,
+    });
+    const second = await provisionUserKey({
+      client,
+      db,
+      userId: 'user1',
+      config,
+      keyLimitMicroUsd: 71_300_000,
+      expiresAt: new Date('2026-03-05T00:00:00.000Z'),
+    });
+
+    expect(second.key?.created).toBe(true);
+    expect(second.key?.rotated).toBe(true);
+    expect(client.createKey).toHaveBeenCalledTimes(2);
+    expect(client.deleteKey).toHaveBeenCalledTimes(1);
   });
 
   it('rotates a remote key whose plaintext is missing from the store', async () => {
     const { client, keys } = makeClient();
     const { db } = makeStore();
 
-    await provisionUserKeys({ client, db, userId: 'user1', config });
-    // Simulate a lost encrypted store: clear it while remote keys remain.
+    await provisionUserKey({
+      client,
+      db,
+      userId: 'user1',
+      config,
+      keyLimitMicroUsd: 35_500_000,
+      expiresAt,
+    });
     const { db: emptyDb } = makeStore();
 
-    await provisionUserKeys({ client, db: emptyDb, userId: 'user1', config });
+    await provisionUserKey({
+      client,
+      db: emptyDb,
+      userId: 'user1',
+      config,
+      keyLimitMicroUsd: 35_500_000,
+      expiresAt,
+      rotate: false,
+    });
 
-    expect(client.deleteKey).toHaveBeenCalledTimes(3);
-    expect(client.createKey).toHaveBeenCalledTimes(6);
-    expect(keys).toHaveLength(3);
+    expect(client.deleteKey).toHaveBeenCalledTimes(1);
+    expect(client.createKey).toHaveBeenCalledTimes(2);
+    expect(keys).toHaveLength(1);
   });
 });

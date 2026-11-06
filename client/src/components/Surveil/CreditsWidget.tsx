@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Button } from '@librechat/client';
 import type { TSurveilCredits, TSurveilPlanKey } from 'librechat-data-provider';
 import {
@@ -62,26 +62,6 @@ function PlanPicker() {
   );
 }
 
-function TierBreakdown({ credits }: { credits: TSurveilCredits }) {
-  const localize = useLocalize();
-  const rows: Array<[string, number]> = [
-    [localize('com_surveil_tier_1'), credits.perTier.tier1],
-    [localize('com_surveil_tier_2'), credits.perTier.tier2],
-    [localize('com_surveil_tier_3'), credits.perTier.tier3],
-  ];
-  return (
-    <div className="border-border-inset mt-1 flex flex-col gap-0.5 border-t pt-1">
-      <span className="text-text-secondary text-xs">{localize('com_surveil_tier_breakdown')}</span>
-      {rows.map(([label, value]) => (
-        <div key={label} className="flex justify-between text-xs">
-          <span className="text-text-secondary">{label}</span>
-          <span className="text-text-primary">{formatUsd(value)}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /** Persistent remaining-credits widget for the sidebar. */
 export default function CreditsWidget() {
   const localize = useLocalize();
@@ -91,7 +71,6 @@ export default function CreditsWidget() {
   const refresh = useRefreshSurveilCredits();
   const portal = useCreateSurveilPortal();
   const redirect = useRedirect();
-  const [showBreakdown, setShowBreakdown] = useState(false);
 
   const percentUsed = useMemo(() => {
     if (!credits || credits.grantUSD <= 0) return 0;
@@ -117,19 +96,14 @@ export default function CreditsWidget() {
         </div>
       ) : (
         <div className="flex flex-col gap-1">
-          <button
-            type="button"
-            className="flex w-full items-center justify-between"
-            aria-expanded={showBreakdown}
-            onClick={() => setShowBreakdown((value) => !value)}
-          >
+          <div className="flex w-full items-center justify-between">
             <span className="text-text-secondary text-xs">
               {localize('com_surveil_credits_remaining')}
             </span>
             <span className="text-text-primary text-sm font-semibold">
               {formatUsd(credits.remainingUSD)}
             </span>
-          </button>
+          </div>
 
           <div
             role="progressbar"
@@ -148,8 +122,6 @@ export default function CreditsWidget() {
             {localize('com_surveil_credits_used')} {formatUsd(credits.spentUSD)}
             {renews ? ` · ${localize('com_surveil_renews_on')} ${renews}` : ''}
           </span>
-
-          {showBreakdown && <TierBreakdown credits={credits} />}
 
           {credits.remainingUSD <= 0 && (
             <span className="text-status-error-strong text-xs" role="alert">

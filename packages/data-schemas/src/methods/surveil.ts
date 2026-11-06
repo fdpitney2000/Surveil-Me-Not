@@ -6,7 +6,7 @@ export interface CreatePeriodInput {
   invoiceId: string;
   plan?: string;
   grantMicroUsd: number;
-  snapshotByTier: { tier1: number; tier2: number; tier3: number };
+  snapshotUsageMicro: number;
   periodStart?: Date;
   periodEnd?: Date;
   kind?: 'cycle' | 'proration';

@@ -26,7 +26,7 @@ beforeEach(async () => {
   await mongoose.connection.db?.dropDatabase();
 });
 
-const tier = { tier1: 0, tier2: 0, tier3: 0 };
+const snapshotUsageMicro = 0;
 
 describe('Surveil period idempotency', () => {
   it('creates a period once per invoice id', async () => {
@@ -34,8 +34,8 @@ describe('Surveil period idempotency', () => {
       userId: new mongoose.Types.ObjectId(),
       invoiceId: 'in_123',
       plan: '100',
-      grantMicroUsd: 90_000_000,
-      snapshotByTier: tier,
+      grantMicroUsd: 71_300_000,
+      snapshotUsageMicro,
     };
     const first = await methods.createSurveilPeriod(input);
     const second = await methods.createSurveilPeriod(input);
@@ -88,7 +88,7 @@ describe('Surveil subscription upsert', () => {
       userId,
       invoiceId: 'in_del',
       grantMicroUsd: 1,
-      snapshotByTier: tier,
+      snapshotUsageMicro,
     });
     await methods.deleteSurveilForUser(String(userId));
     expect(await methods.getSurveilSubscriptionByUser(String(userId))).toBeNull();

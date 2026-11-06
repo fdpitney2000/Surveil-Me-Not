@@ -49,8 +49,17 @@ export function resolveSurveilConfig(raw?: Partial<TSurveilConfig>): ResolvedSur
   const graceDays = envNumber('SURVEIL_GRACE_DAYS');
   if (graceDays !== undefined) overrides.graceDays = graceDays;
 
-  const grantRatio = envNumber('CREDIT_GRANT_RATIO');
-  if (grantRatio !== undefined) overrides.creditGrantRatio = grantRatio;
+  const retentionPct = envNumber('RETENTION_PCT');
+  if (retentionPct !== undefined) overrides.retentionPct = retentionPct;
+
+  const stripeFeePct = envNumber('STRIPE_FEE_PCT');
+  if (stripeFeePct !== undefined) overrides.stripeFeePct = stripeFeePct;
+
+  const stripeFeeFixedUsd = envNumber('STRIPE_FEE_FIXED');
+  if (stripeFeeFixedUsd !== undefined) overrides.stripeFeeFixedUsd = stripeFeeFixedUsd;
+
+  const openrouterFeePct = envNumber('OPENROUTER_FEE_PCT');
+  if (openrouterFeePct !== undefined) overrides.openrouterFeePct = openrouterFeePct;
 
   return { ...base, ...overrides, tiers: base.tiers };
 }
@@ -68,12 +77,18 @@ export function tierForEndpoint(
   return config.tiers.find((entry) => entry.endpoint === endpoint)?.tier;
 }
 
-/** The OpenRouter key name for a user and tier. Not a secret. */
-export function openRouterKeyName(userId: string, tier: number): string {
-  return `surveil:${userId}:${tier}`;
+/** The OpenRouter key name for a user. Not a secret. */
+export function openRouterKeyName(userId: string): string {
+  return `surveil:${userId}`;
 }
 
-/** The prefix used to find all of a user's keys. */
+/** The prefix used to find a user's current and legacy keys. */
 export function openRouterKeyPrefix(userId: string): string {
-  return `surveil:${userId}:`;
+  return `surveil:${userId}`;
+}
+
+/** True for the exact user key or any legacy per-tier key. */
+export function isOpenRouterKeyForUser(name: string, userId: string): boolean {
+  const prefix = openRouterKeyPrefix(userId);
+  return name === prefix || name.startsWith(`${prefix}:`);
 }

@@ -1,7 +1,7 @@
 import type { OpenRouterApiKey, OpenRouterClient } from './openrouter/client';
 import type { ResolvedSurveilConfig } from './config';
-import { openRouterKeyName, openRouterKeyPrefix } from './config';
-import { requireGuardrails } from './openrouter/guardrails';
+import { isOpenRouterKeyForUser, openRouterKeyName } from './config';
+import { microToUsd } from './money';
 
 /** The subset of the encrypted user-key store that provisioning needs. */
 export interface SurveilKeyStore {
@@ -15,18 +15,17 @@ export interface SurveilKeyStore {
   deleteUserKey(params: { userId: string; name?: string; all?: boolean }): Promise<unknown>;
 }
 
-export interface ProvisionedTier {
-  tier: number;
-  endpoint: string;
+export interface ProvisionedKey {
   keyName: string;
   keyHash: string;
   created: boolean;
   rotated: boolean;
+  expiresAt?: Date | null;
 }
 
 export interface ProvisionResult {
   userId: string;
-  tiers: ProvisionedTier[];
+  key: ProvisionedKey | null;
 }
 
 async function hasStoredKey(db: SurveilKeyStore, userId: string, name: string): Promise<boolean> {
@@ -38,64 +37,96 @@ async function hasStoredKey(db: SurveilKeyStore, userId: string, name: string): 
   }
 }
 
+/** True when every tier endpoint has a stored copy of the user's key. */
+async function hasStoredKeyForAllEndpoints(
+  db: SurveilKeyStore,
+  userId: string,
+  config: ResolvedSurveilConfig,
+): Promise<boolean> {
+  for (const tier of config.tiers) {
+    if (!(await hasStoredKey(db, userId, tier.endpoint))) return false;
+  }
+  return true;
+}
+
 /**
- * Idempotently provision one OpenRouter key per tier for a user, store each plaintext key in
- * the encrypted user-key store under its endpoint name, and assign each key to its tier's
- * guardrail. Retry-safe: a key that exists remotely but not in the store is rotated; a
- * created key is reassigned on retry.
+ * Idempotently provision one OpenRouter key for a customer and store its plaintext under
+ * every tier endpoint so all three custom endpoints resolve the same key. A new key is
+ * created for a new paid period (which resets OpenRouter's per-key usage); a retry with
+ * `rotate: false` only creates a key when one is missing.
  */
-export async function provisionUserKeys(options: {
+export async function provisionUserKey(options: {
   client: OpenRouterClient;
   db: SurveilKeyStore;
   userId: string;
   config: ResolvedSurveilConfig;
+  keyLimitMicroUsd: number;
+  expiresAt?: Date | null;
+  rotate?: boolean;
 }): Promise<ProvisionResult> {
-  const { client, db, userId, config } = options;
-  const guardrails = await requireGuardrails({ client });
+  const { client, db, userId, config, keyLimitMicroUsd } = options;
+  const keyName = openRouterKeyName(userId);
   const allKeys = await client.listAllKeys();
-  const byName = new Map<string, OpenRouterApiKey>(allKeys.map((key) => [key.name, key]));
+  const mine = allKeys.filter((key) => isOpenRouterKeyForUser(key.name, userId));
+  const current = mine.find((key) => key.name === keyName);
+  const stored = await hasStoredKeyForAllEndpoints(db, userId, config);
+  const rotate = options.rotate ?? true;
 
-  const tiers: ProvisionedTier[] = [];
+  let key: OpenRouterApiKey | undefined;
+  let created = false;
+  let rotated = false;
+  let plaintext: string | undefined;
 
-  for (const tier of config.tiers) {
-    const keyName = openRouterKeyName(userId, tier.tier);
-    const guardrail = guardrails[tier.tier];
-    const stored = await hasStoredKey(db, userId, tier.endpoint);
-    let existing = byName.get(keyName);
-    let created = false;
-    let rotated = false;
+  if (rotate || !current || !stored) {
+    const result = await client.createKey({
+      name: keyName,
+      limit: microToUsd(keyLimitMicroUsd),
+      limit_reset: null,
+      expires_at: options.expiresAt ? options.expiresAt.toISOString() : null,
+    });
+    key = result.data;
+    plaintext = result.key;
+    created = true;
+    rotated = mine.length > 0;
 
-    if (existing && !stored) {
-      // The remote key exists but we cannot recover its plaintext: rotate it.
-      await client.deleteKey(existing.hash);
-      existing = undefined;
-      rotated = true;
+    /* Remove legacy per-tier keys and the previous period's key. Their usage must not
+     * contaminate the new period's cumulative usage. */
+    for (const old of mine) {
+      if (old.hash === key.hash) continue;
+      try {
+        await client.deleteKey(old.hash);
+      } catch {
+        /* Best-effort: the reconciler disables leftovers and they expire on their own. */
+      }
     }
+  } else {
+    key = current;
+  }
 
-    if (!existing) {
-      const result = await client.createKey({ name: keyName, limit: 0, limit_reset: null });
+  if (!key) return { userId, key: null };
+
+  if (created && plaintext) {
+    const value = JSON.stringify({ apiKey: plaintext });
+    for (const tier of config.tiers) {
       await db.updateUserKey({
         userId,
         name: tier.endpoint,
-        value: JSON.stringify({ apiKey: result.key }),
+        value,
+        expiresAt: options.expiresAt ?? null,
       });
-      existing = result.data;
-      created = true;
     }
-
-    await client.assignKeysToGuardrail(guardrail.id, [existing.hash]);
-
-    tiers.push({
-      tier: tier.tier,
-      endpoint: tier.endpoint,
-      keyName,
-      keyHash: existing.hash,
-      created,
-      rotated,
-    });
   }
 
-  return { userId, tiers };
+  return {
+    userId,
+    key: {
+      keyName,
+      keyHash: key.hash,
+      created,
+      rotated,
+      expiresAt: options.expiresAt ?? null,
+    },
+  };
 }
 
 /** Enable or disable every OpenRouter key belonging to a user. Returns the count changed. */
@@ -105,9 +136,10 @@ export async function setUserKeysDisabled(options: {
   disabled: boolean;
 }): Promise<{ changed: number }> {
   const { client, userId, disabled } = options;
-  const prefix = openRouterKeyPrefix(userId);
   const allKeys = await client.listAllKeys();
-  const mine = allKeys.filter((key) => key.name.startsWith(prefix) && key.disabled !== disabled);
+  const mine = allKeys.filter(
+    (key) => isOpenRouterKeyForUser(key.name, userId) && key.disabled !== disabled,
+  );
   for (const key of mine) {
     await client.updateKey(key.hash, { disabled });
   }
@@ -125,9 +157,8 @@ export async function deprovisionUserKeys(options: {
   config: ResolvedSurveilConfig;
 }): Promise<{ deleted: number }> {
   const { client, db, userId, config } = options;
-  const prefix = openRouterKeyPrefix(userId);
   const allKeys = await client.listAllKeys();
-  const mine = allKeys.filter((key) => key.name.startsWith(prefix));
+  const mine = allKeys.filter((key) => isOpenRouterKeyForUser(key.name, userId));
 
   let deleted = 0;
   for (const key of mine) {

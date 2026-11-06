@@ -8,8 +8,10 @@ describe('surveilConfigSchema', () => {
         enabled: true,
         reconcileIntervalMs: 120_000,
         pricingTtlMs: 3_600_000,
-        keyLimitMode: 'allocate',
-        creditGrantRatio: 0.9,
+        retentionPct: 20,
+        stripeFeePct: 2.9,
+        stripeFeeFixedUsd: 0.3,
+        openrouterFeePct: 5.5,
         guardrailBackstopUsd: 180,
         mgmtKeyWarnDays: 14,
       }),
@@ -37,7 +39,7 @@ describe('surveilConfigSchema', () => {
       version: '1.3.7',
       surveil: {
         enabled: true,
-        keyLimitMode: 'duplicate',
+        retentionPct: 15,
         tiers: [
           { tier: 1, endpoint: 'Max Model Selection', description: 'a' },
           { tier: 2, endpoint: 'Commercial Privacy', description: 'b' },

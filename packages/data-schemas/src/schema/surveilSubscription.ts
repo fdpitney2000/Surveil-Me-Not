@@ -1,14 +1,5 @@
 import { Schema } from 'mongoose';
-import type { ISurveilSubscription, ISurveilTierUsage } from '~/types';
-
-const tierUsageSchema = new Schema<ISurveilTierUsage>(
-  {
-    tier1: { type: Number, default: 0 },
-    tier2: { type: Number, default: 0 },
-    tier3: { type: Number, default: 0 },
-  },
-  { _id: false },
-);
+import type { ISurveilSubscription } from '~/types';
 
 const surveilSubscriptionSchema: Schema<ISurveilSubscription> = new Schema<ISurveilSubscription>(
   {
@@ -26,9 +17,11 @@ const surveilSubscriptionSchema: Schema<ISurveilSubscription> = new Schema<ISurv
     periodStart: { type: Date },
     renewsAt: { type: Date },
     grantMicroUsd: { type: Number, default: 0 },
-    snapshotByTier: { type: tierUsageSchema, default: () => ({ tier1: 0, tier2: 0, tier3: 0 }) },
-    usageByTier: { type: tierUsageSchema, default: () => ({ tier1: 0, tier2: 0, tier3: 0 }) },
-    activeTier: { type: Number, default: 1 },
+    snapshotUsageMicro: { type: Number, default: 0 },
+    usageMicro: { type: Number, default: 0 },
+    keyHash: { type: String },
+    keyExpiresAt: { type: Date, default: null },
+    keyLimitMicroUsd: { type: Number },
     graceUntil: { type: Date, default: null },
     flaggedForReview: { type: Boolean, default: false },
     lastSyncedAt: { type: Date, default: null },
