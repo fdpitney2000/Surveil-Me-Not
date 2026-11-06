@@ -388,9 +388,6 @@ export function createSurveilPortal(): Promise<TSurveilPortalResponse> {
   return request.post(endpoints.surveilPortal());
 }
 
-export const updateTokenCount = (text: string) => {
-  return request.post(endpoints.tokenizer(), { arg: text });
-};
 export const login = (payload: t.TLoginUser): Promise<t.TLoginResponse> => {
   return request.post(endpoints.login(), payload);
 };
