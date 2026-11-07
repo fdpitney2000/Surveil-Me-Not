@@ -6,7 +6,7 @@ import {
   extractEnvVariable,
   normalizeEndpointName,
 } from 'librechat-data-provider';
-import type { TModelsConfig, TEndpoint } from 'librechat-data-provider';
+import type { TModelsConfig, TEndpoint, TSurveilConfig } from 'librechat-data-provider';
 import type { AppConfig } from '@librechat/data-schemas';
 import type { ServerRequest, GetUserKeyValuesFunction, UserKeyValues } from '~/types';
 import type { FetchModelsParams } from '~/endpoints/models';
@@ -14,6 +14,7 @@ import type { GetAppConfigOptions } from '~/app/service';
 import { fetchModels as defaultFetchModels } from '~/endpoints/models';
 import { isServedCustomEndpoint } from '~/endpoints/custom/config';
 import { getTokenConfigKey } from '~/endpoints/custom/initialize';
+import { isSurveilTierEndpoint } from '~/surveil/config';
 import { getAppConfigOptionsFromUser } from '~/app/service';
 
 /**
@@ -185,6 +186,28 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
             );
           }
           userKeyMap.set(userKeyEndpoints[i].name, null);
+        }
+      }
+    }
+
+    const sharedFreeKey = process.env.SURVEIL_FREE_OPENROUTER_KEY?.trim();
+    const catalogKey = process.env.OPENROUTER_MANAGEMENT_KEY?.trim() || sharedFreeKey;
+    if (catalogKey) {
+      for (const entry of userKeyEndpoints) {
+        const values = userKeyMap.get(entry.name);
+        if (
+          !values?.apiKey &&
+          isSurveilTierEndpoint(
+            appConfig.surveil as Partial<TSurveilConfig> | undefined,
+            entry.name,
+          )
+        ) {
+          /**
+           * The shared free key is guardrail-filtered to free models, so it cannot enumerate
+           * the paid catalog needed for the greyed-out rows. The management key is server-side
+           * and display-only here; it is never handed to the endpoint client.
+           */
+          userKeyMap.set(entry.name, { apiKey: catalogKey });
         }
       }
     }

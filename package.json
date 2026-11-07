@@ -113,6 +113,7 @@
     "surveil:check-env": "node scripts/surveil/check-env.mjs",
     "surveil:stripe-local-secret": "node scripts/surveil/stripe-local-secret.mjs",
     "surveil:openrouter-bootstrap": "node scripts/surveil/openrouter-bootstrap.mjs",
+    "surveil:openrouter-free-key": "node scripts/surveil/openrouter-free-key.mjs",
     "surveil:openrouter-provision": "node scripts/surveil/openrouter-provision.mjs",
     "surveil:openrouter-deprovision": "node scripts/surveil/openrouter-deprovision.mjs",
     "surveil:openrouter-check-key": "node scripts/surveil/openrouter-check-key.mjs",

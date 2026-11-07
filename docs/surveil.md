@@ -77,6 +77,21 @@ npm run surveil:openrouter-bootstrap
 npm run surveil:openrouter-check-key
 ```
 
+### Shared free-tier key
+
+Signed-up users without a subscription have no per-user OpenRouter key. Create the shared
+`surveil:free` key once; it is restricted by a free-model-only guardrail and used only as a
+server-side fallback:
+
+```
+npm run surveil:openrouter-free-key
+```
+
+The command writes `SURVEIL_FREE_OPENROUTER_KEY` to `.env` without printing it. With that
+set, free users get the full OpenRouter catalog, paid models stay locked in the picker, and
+free models remain callable. Paid `invoice.paid` provisioning overwrites the fallback with
+the customer's managed key.
+
 ## 4. Run the stack
 
 ```

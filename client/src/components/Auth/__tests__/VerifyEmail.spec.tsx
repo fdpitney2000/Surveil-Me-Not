@@ -10,6 +10,7 @@ jest.mock('@librechat/client', () => ({
 }));
 
 jest.mock('~/data-provider', () => ({
+  useGetStartupConfig: jest.fn(() => ({ data: { appTitle: 'TestApp' } })),
   useVerifyEmailMutation: jest.fn(),
   useResendVerificationEmail: jest.fn(),
   useConfirmEmailChangeMutation: jest.fn(),

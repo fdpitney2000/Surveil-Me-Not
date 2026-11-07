@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button, Spinner, ThemeSelector } from '@librechat/client';
 import type { EmailChangeErrorCode } from 'librechat-data-provider';
 import {
+  useGetStartupConfig,
   useVerifyEmailMutation,
   useResendVerificationEmail,
   useConfirmEmailChangeMutation,
@@ -23,6 +24,16 @@ function RequestPasswordReset() {
   const email = useMemo(() => params.get('email') || '', [params]);
   const userId = useMemo(() => params.get('userId') || '', [params]);
   const isEmailChange = useMemo(() => params.get('type') === 'email-change', [params]);
+  const { data: startupConfig } = useGetStartupConfig();
+  const attemptedRef = useRef(false);
+
+  useEffect(() => {
+    const previousTitle = document.title;
+    document.title = `Verify email · ${startupConfig?.appTitle ?? 'Surveil Me Not'}`;
+    return () => {
+      document.title = previousTitle;
+    };
+  }, [startupConfig?.appTitle]);
 
   const countdownRedirect = useCallback(() => {
     setCountdown(3);
@@ -86,12 +97,15 @@ function RequestPasswordReset() {
 
   useEffect(() => {
     if (
+      attemptedRef.current ||
       verificationStatus ||
       verifyEmailMutation.isLoading ||
       confirmEmailChangeMutation.isLoading
     ) {
       return;
     }
+
+    attemptedRef.current = true;
 
     if (isEmailChange && token && email && userId) {
       confirmEmailChangeMutation.mutate({ email, token, userId });

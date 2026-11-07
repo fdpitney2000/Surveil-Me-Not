@@ -14,7 +14,12 @@ const ALIASES = {
 };
 
 /** Plan price IDs are required for checkout; report but do not fail the base check. */
-const RECOMMENDED = ['STRIPE_PRICE_50_ID', 'STRIPE_PRICE_100_ID', 'STRIPE_PRICE_200_ID'];
+const RECOMMENDED = [
+  'STRIPE_PRICE_50_ID',
+  'STRIPE_PRICE_100_ID',
+  'STRIPE_PRICE_200_ID',
+  'SURVEIL_FREE_OPENROUTER_KEY',
+];
 
 /** Resolve a variable or its alias, returning the name that is set. */
 function resolveStatus(env, key) {

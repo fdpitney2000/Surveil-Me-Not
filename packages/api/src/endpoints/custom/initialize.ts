@@ -6,7 +6,7 @@ import {
   FetchTokenConfig,
   extractEnvVariable,
 } from 'librechat-data-provider';
-import type { TEndpoint } from 'librechat-data-provider';
+import type { TEndpoint, TSurveilConfig } from 'librechat-data-provider';
 import type { AppConfig } from '@librechat/data-schemas';
 import type {
   InitializeResultBase,
@@ -23,6 +23,7 @@ import { getOpenAIConfig } from '~/endpoints/openai/config';
 import { getScopedTokenConfigKey } from '~/endpoints/keys';
 import { resolveCustomEndpointParameters } from './config';
 import { getCustomEndpointConfig } from '~/app/config';
+import { resolveSurveilConfig } from '~/surveil/config';
 import { resolveEndpointRuntime } from '~/types';
 import { fetchModels } from '~/endpoints/models';
 import { validateEndpointURL } from '~/auth';
@@ -230,7 +231,23 @@ export async function initializeCustom(
     userValues = await db.getUserKeyValues({ userId: user?.id ?? '', name: endpoint });
   }
 
-  const apiKey = userProvidesKey || userProvidesURL ? userValues?.apiKey : CUSTOM_API_KEY;
+  /**
+   * Surveil free tier: a paid subscriber has a managed key in the encrypted store, but a
+   * signed-up user without a subscription does not. Fall back to the shared free-model key
+   * so the picker can load the real OpenRouter catalog and free models remain callable.
+   * The shared key is restricted by an OpenRouter guardrail and never leaves the server.
+   */
+  const surveil = resolveSurveilConfig(
+    appConfig?.surveil as Partial<TSurveilConfig> | undefined,
+  );
+  const isSurveilTier =
+    surveil.enabled && surveil.tiers.some((tier) => tier.endpoint === endpoint);
+  const sharedFreeKey = isSurveilTier
+    ? process.env.SURVEIL_FREE_OPENROUTER_KEY?.trim()
+    : undefined;
+
+  const apiKey =
+    userProvidesKey || userProvidesURL ? userValues?.apiKey || sharedFreeKey : CUSTOM_API_KEY;
   const baseURL = userProvidesURL ? userValues?.baseURL : CUSTOM_BASE_URL;
 
   if ((userProvidesKey || userProvidesURL) && !apiKey) {

@@ -77,6 +77,15 @@ export function tierForEndpoint(
   return config.tiers.find((entry) => entry.endpoint === endpoint)?.tier;
 }
 
+/** Whether a custom endpoint name is one of the configured Surveil tiers. */
+export function isSurveilTierEndpoint(
+  rawConfig: Partial<TSurveilConfig> | undefined,
+  endpoint: string,
+): boolean {
+  const config = resolveSurveilConfig(rawConfig);
+  return config.enabled && config.tiers.some((tier) => tier.endpoint === endpoint);
+}
+
 /** The OpenRouter key name for a user. Not a secret. */
 export function openRouterKeyName(userId: string): string {
   return `surveil:${userId}`;
