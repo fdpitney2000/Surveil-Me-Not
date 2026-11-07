@@ -189,7 +189,6 @@ describe('sendEmail Loops provider', () => {
       name: 'User',
       verificationLink: 'https://app.example.com/verify?token=abc',
       appName: 'Surveil',
-      year: '2026',
     });
   });
 

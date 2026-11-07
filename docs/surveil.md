@@ -47,8 +47,8 @@ behavior you are seeing.
 To require real email verification:
 
 1. In Loops, create and publish two transactional emails with these data variables:
-   - Verification: `name`, `verificationLink`, `appName`, `year`
-   - Password reset: `name`, `link`, `appName`, `year`
+   - Verification: `name`, `verificationLink`, `appName`
+   - Password reset: `name`, `link`, `appName`
 2. Add their IDs to `.env`:
 
 ```env

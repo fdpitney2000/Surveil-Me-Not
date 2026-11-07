@@ -117,7 +117,6 @@ const loopsDataForTemplate = (template, payload) => {
       name: payload.name,
       verificationLink: payload.verificationLink,
       appName: payload.appName,
-      year: String(payload.year ?? ''),
     };
   }
   if (template === 'requestPasswordReset.handlebars') {
@@ -125,7 +124,6 @@ const loopsDataForTemplate = (template, payload) => {
       name: payload.name,
       link: payload.link,
       appName: payload.appName,
-      year: String(payload.year ?? ''),
     };
   }
   return payload;
