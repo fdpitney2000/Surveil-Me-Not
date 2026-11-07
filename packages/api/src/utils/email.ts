@@ -11,6 +11,10 @@ export function checkEmailConfig(): boolean {
   const hasSMTPConfig =
     (!!process.env.EMAIL_SERVICE || !!process.env.EMAIL_HOST) && !!process.env.EMAIL_FROM;
 
+  const hasLoopsConfig =
+    !!process.env.LOOPS_API_KEY &&
+    (!!process.env.LOOPS_TRANSACTIONAL_VERIFY_ID || !!process.env.LOOPS_TRANSACTIONAL_RESET_ID);
+
   if (hasSMTPConfig) {
     const hasUsername = !!process.env.EMAIL_USERNAME;
     const hasPassword = !!process.env.EMAIL_PASSWORD;
@@ -21,5 +25,5 @@ export function checkEmailConfig(): boolean {
     }
   }
 
-  return hasMailgunConfig || hasSMTPConfig;
+  return hasMailgunConfig || hasSMTPConfig || hasLoopsConfig;
 }

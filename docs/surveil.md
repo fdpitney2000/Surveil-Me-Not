@@ -38,6 +38,33 @@ npm run surveil:check-env
 
 The app refuses to start with a live Stripe key unless `SURVEIL_ALLOW_LIVE_STRIPE=true`.
 
+## 2a. Email verification via Loops
+
+If `EMAIL_HOST`/`EMAIL_SERVICE` are empty and no Mailgun/Loops credentials are set,
+`checkEmailConfig()` is false and registration auto-verifies the account. That is the demo
+behavior you are seeing.
+
+To require real email verification:
+
+1. In Loops, create and publish two transactional emails with these data variables:
+   - Verification: `name`, `verificationLink`, `appName`, `year`
+   - Password reset: `name`, `link`, `appName`, `year`
+2. Add their IDs to `.env`:
+
+```env
+LOOPS_API_KEY=...
+LOOPS_TRANSACTIONAL_VERIFY_ID=...
+LOOPS_TRANSACTIONAL_RESET_ID=...
+ALLOW_UNVERIFIED_EMAIL_LOGIN=false
+```
+
+3. Rebuild/restart the API. `checkEmailConfig()` now returns true, so registration creates
+   the account with `emailVerified=false`, sends the Loops verification email, and blocks
+   local login until the user clicks the link.
+
+Loops is now the preferred provider; SMTP/Mailgun remain fallbacks for templates that are
+not mapped to a Loops transactional ID.
+
 ## 3. Bootstrap OpenRouter (optional)
 
 `openrouter-bootstrap` still converges the legacy per-tier guardrails and enables the

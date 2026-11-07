@@ -70,6 +70,69 @@ const sendEmailViaSMTP = async ({ transporterOptions, mailOptions }) => {
 };
 
 /**
+ * Sends a transactional email through Loops. Loops owns the HTML template; LibreChat
+ * supplies the recipient and the dynamic variables.
+ */
+const sendEmailViaLoops = async ({ email, transactionalId, dataVariables }) => {
+  if (!process.env.LOOPS_API_KEY) {
+    throw new Error('LOOPS_API_KEY is required for Loops transactional email');
+  }
+  const response = await fetch('https://app.loops.so/api/v1/transactional', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.LOOPS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, transactionalId, dataVariables }),
+  });
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(
+      `Loops transactional email failed (${response.status}): ${text.slice(0, 300)}`,
+    );
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { success: true };
+  }
+};
+
+/** Map LibreChat templates to the Loops transactional IDs configured in .env. */
+const loopsTransactionalIdForTemplate = (template) => {
+  switch (template) {
+    case 'verifyEmail.handlebars':
+      return process.env.LOOPS_TRANSACTIONAL_VERIFY_ID;
+    case 'requestPasswordReset.handlebars':
+      return process.env.LOOPS_TRANSACTIONAL_RESET_ID;
+    default:
+      return undefined;
+  }
+};
+
+/** Map the LibreChat template payload to the variables used by the Loops template. */
+const loopsDataForTemplate = (template, payload) => {
+  if (template === 'verifyEmail.handlebars') {
+    return {
+      name: payload.name,
+      verificationLink: payload.verificationLink,
+      appName: payload.appName,
+      year: String(payload.year ?? ''),
+    };
+  }
+  if (template === 'requestPasswordReset.handlebars') {
+    return {
+      name: payload.name,
+      link: payload.link,
+      appName: payload.appName,
+      year: String(payload.year ?? ''),
+    };
+  }
+  return payload;
+};
+
+
+/**
  * Sends an email using the specified template, subject, and payload.
  *
  * @async
@@ -107,6 +170,16 @@ const sendEmail = async ({ email, subject, payload, template, throwError = true 
     const fromEmail = process.env.EMAIL_FROM;
     const fromAddress = `"${fromName}" <${fromEmail}>`;
     const toAddress = `"${payload.name}" <${email}>`;
+
+    const loopsTransactionalId = loopsTransactionalIdForTemplate(template);
+    if (process.env.LOOPS_API_KEY && loopsTransactionalId) {
+      logger.debug('[sendEmail] Using Loops transactional provider');
+      return await sendEmailViaLoops({
+        email,
+        transactionalId: loopsTransactionalId,
+        dataVariables: loopsDataForTemplate(template, payload),
+      });
+    }
 
     // Check if Mailgun is configured
     if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {

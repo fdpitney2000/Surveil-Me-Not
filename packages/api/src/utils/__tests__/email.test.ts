@@ -17,6 +17,9 @@ beforeEach(() => {
   delete process.env.EMAIL_FROM;
   delete process.env.MAILGUN_API_KEY;
   delete process.env.MAILGUN_DOMAIN;
+  delete process.env.LOOPS_API_KEY;
+  delete process.env.LOOPS_TRANSACTIONAL_VERIFY_ID;
+  delete process.env.LOOPS_TRANSACTIONAL_RESET_ID;
 });
 
 afterAll(() => {
@@ -101,6 +104,28 @@ describe('checkEmailConfig', () => {
       process.env.EMAIL_USERNAME = 'user';
       checkEmailConfig();
       expect(logger.warn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Loops configuration', () => {
+    it('returns true with a Loops key and verification template id', () => {
+      process.env.LOOPS_API_KEY = 'loops_test_key';
+      process.env.LOOPS_TRANSACTIONAL_VERIFY_ID = 'cll_verify';
+      expect(checkEmailConfig()).toBe(true);
+    });
+
+    it('returns true with a Loops key and reset template id', () => {
+      process.env.LOOPS_API_KEY = 'loops_test_key';
+      process.env.LOOPS_TRANSACTIONAL_RESET_ID = 'cll_reset';
+      expect(checkEmailConfig()).toBe(true);
+    });
+
+    it('returns false when the Loops key or template ids are missing', () => {
+      process.env.LOOPS_API_KEY = 'loops_test_key';
+      expect(checkEmailConfig()).toBe(false);
+      delete process.env.LOOPS_API_KEY;
+      process.env.LOOPS_TRANSACTIONAL_VERIFY_ID = 'cll_verify';
+      expect(checkEmailConfig()).toBe(false);
     });
   });
 

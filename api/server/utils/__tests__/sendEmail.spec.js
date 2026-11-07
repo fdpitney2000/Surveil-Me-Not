@@ -31,6 +31,9 @@ beforeEach(() => {
   delete process.env.EMAIL_ENCRYPTION;
   delete process.env.EMAIL_ENCRYPTION_HOSTNAME;
   delete process.env.EMAIL_ALLOW_SELFSIGNED;
+  delete process.env.LOOPS_API_KEY;
+  delete process.env.LOOPS_TRANSACTIONAL_VERIFY_ID;
+  delete process.env.LOOPS_TRANSACTIONAL_RESET_ID;
 
   readFileAsString.mockResolvedValue({ content: '<p>{{name}}</p>' });
   nodemailer.createTransport.mockReturnValue({ sendMail: mockSendMail });
@@ -141,6 +144,65 @@ describe('sendEmail SMTP auth assembly', () => {
     await sendEmail(baseParams);
 
     expect(freshLogger.warn).not.toHaveBeenCalled();
+  });
+});
+
+describe('sendEmail Loops provider', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('sends verification email through Loops with template variables', async () => {
+    process.env.LOOPS_API_KEY = 'loops_test_key';
+    process.env.LOOPS_TRANSACTIONAL_VERIFY_ID = 'cll_verify';
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ success: true }),
+    });
+
+    const sendEmail = loadSendEmail();
+    await sendEmail({
+      email: 'user@example.com',
+      subject: 'Verify your email',
+      payload: {
+        name: 'User',
+        verificationLink: 'https://app.example.com/verify?token=abc',
+        appName: 'Surveil',
+        year: 2026,
+      },
+      template: 'verifyEmail.handlebars',
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://app.loops.so/api/v1/transactional',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"transactionalId":"cll_verify"'),
+      }),
+    );
+    const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+    expect(body.email).toBe('user@example.com');
+    expect(body.dataVariables).toEqual({
+      name: 'User',
+      verificationLink: 'https://app.example.com/verify?token=abc',
+      appName: 'Surveil',
+      year: '2026',
+    });
+  });
+
+  it('falls back to SMTP when no Loops template is mapped', async () => {
+    process.env.LOOPS_API_KEY = 'loops_test_key';
+    global.fetch = jest.fn();
+    const sendEmail = loadSendEmail();
+    const { createTransport } = require('nodemailer');
+
+    await sendEmail(baseParams);
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(createTransport).toHaveBeenCalledTimes(1);
   });
 });
 
