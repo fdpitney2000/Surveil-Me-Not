@@ -49,7 +49,7 @@ import { smoothStreamingAtom } from '~/store/smoothStreaming';
 import ChangeEmail from '../SettingsTabs/Account/ChangeEmail';
 import { RevokeKeys } from '../SettingsTabs/Data/RevokeKeys';
 import { ClearChats } from '../SettingsTabs/Data/ClearChats';
-import { TokenCredits, AutoRefill } from './BillingControls';
+import { TokenCredits, AutoRefill, SurveilPlan } from './BillingControls';
 import AdminPanel from '../SettingsTabs/General/AdminPanel';
 import SharedLinks from '../SettingsTabs/Data/SharedLinks';
 import ImageResize from '../SettingsTabs/Chat/ImageResize';
@@ -841,6 +841,15 @@ export const registry: SettingEntry[] = [
     Component: ConnectedAccounts,
   },
   // Account · Billing
+  {
+    id: 'surveilPlan',
+    tab: ACCOUNT,
+    section: 'billing',
+    labelKey: 'com_surveil_current_plan',
+    keywords: ['plan', 'subscription', 'billing', 'credits', 'upgrade', 'stripe'],
+    show: (ctx) => ctx.surveilEnabled,
+    Component: SurveilPlan,
+  },
   {
     id: 'tokenCredits',
     tab: ACCOUNT,

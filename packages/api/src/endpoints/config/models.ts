@@ -14,7 +14,7 @@ import type { GetAppConfigOptions } from '~/app/service';
 import { fetchModels as defaultFetchModels } from '~/endpoints/models';
 import { isServedCustomEndpoint } from '~/endpoints/custom/config';
 import { getTokenConfigKey } from '~/endpoints/custom/initialize';
-import { isSurveilTierEndpoint } from '~/surveil/config';
+import { isSurveilTierEndpoint, resolveSurveilConfig } from '~/surveil/config';
 import { getAppConfigOptionsFromUser } from '~/app/service';
 
 /**
@@ -84,6 +84,18 @@ export interface LoadConfigModelsDeps {
   getAppConfig: (params: GetAppConfigOptions) => Promise<AppConfig>;
   getUserKeyValues: GetUserKeyValuesFunction;
   fetchModels?: (params: FetchModelsParams) => Promise<string[]>;
+}
+
+const SURVEIL_FREE_MODEL_IDS = new Set([
+  /** OpenRouter free models that predate the `:free` suffix convention. */
+  'stealth/crouton-alpha',
+  'google/lyria-3-pro-preview',
+  'google/lyria-3-clip-preview',
+  'openrouter/free',
+]);
+
+function isSurveilFreeModel(model: string): boolean {
+  return model.endsWith(':free') || SURVEIL_FREE_MODEL_IDS.has(model);
 }
 
 export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
@@ -322,7 +334,21 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
         const defaults = (endpoint.models?.default ?? []).map((m) =>
           typeof m === 'string' ? m : m.name,
         );
-        modelsConfig[name] = !modelData?.length ? defaults : modelData;
+        const tier = resolveSurveilConfig(
+          appConfig.surveil as Partial<TSurveilConfig> | undefined,
+        ).tiers.find((candidate) => candidate.endpoint === name);
+        /**
+         * Free OpenRouter models commonly retain prompts for provider training. Only the
+         * lowest tier advertises them; higher tiers keep the paid catalog visible so it can
+         * be greyed out, but never offer a free model that bypasses the privacy promise.
+         */
+        const visibleDefaults =
+          tier && tier.tier > 1 ? defaults.filter((model) => !isSurveilFreeModel(model)) : defaults;
+        const visibleModels =
+          tier && tier.tier > 1
+            ? (modelData ?? []).filter((model) => !isSurveilFreeModel(model))
+            : modelData;
+        modelsConfig[name] = !visibleModels?.length ? visibleDefaults : visibleModels;
       }
 
       /** A shared fetch caches token config under one endpoint's tokenKey;

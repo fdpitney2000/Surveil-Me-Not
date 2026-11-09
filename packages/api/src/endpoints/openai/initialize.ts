@@ -1,4 +1,5 @@
 import { ErrorTypes, EModelEndpoint, mapModelToAzureConfig } from 'librechat-data-provider';
+import type { TSurveilConfig } from 'librechat-data-provider';
 import type {
   InitializeResultBase,
   OpenAIConfigOptions,
@@ -13,6 +14,7 @@ import {
   getAzureCredentials,
 } from '~/utils';
 import { resolveModelTransportTimeouts } from '~/agents/config';
+import { isSurveilTierEndpoint } from '~/surveil/config';
 import { getOpenAIEndpointParameters } from './parameters';
 import { resolveEndpointRuntime } from '~/types';
 import { validateEndpointURL } from '~/auth';
@@ -83,12 +85,40 @@ export async function initializeOpenAI(
     checkUserKeyExpiry(expiresAt, endpoint);
   }
   if (needsUserKey || needsUserURL) {
-    userValues = await db.getUserKeyValues({ userId: user?.id ?? '', name: endpoint });
+    try {
+      userValues = await db.getUserKeyValues({ userId: user?.id ?? '', name: endpoint });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (
+        !message.includes(ErrorTypes.NO_USER_KEY) &&
+        !message.includes(ErrorTypes.INVALID_USER_KEY)
+      ) {
+        throw error;
+      }
+      /** No stored key is the normal free-tier state; the shared fallback below handles it. */
+      userValues = null;
+    }
   }
 
   let apiKey = userProvidesKey
     ? userValues?.apiKey
     : credentials[endpoint as keyof typeof credentials];
+  /**
+   * Surveil tier endpoints use a user-provided key slot. A signed-up user without a
+   * subscription has no managed key, so use the shared free-model key. The key is
+   * guardrail-restricted to free models and never leaves the server.
+   *
+   * The Agents controller resolves the provider as `openai`/`custom` and keeps the
+   * public tier name on the request body, so check both places.
+   */
+  const tierEndpoint = [endpoint, requestBody?.endpoint].find(
+    (candidate): candidate is string =>
+      typeof candidate === 'string' &&
+      isSurveilTierEndpoint(appConfig?.surveil as Partial<TSurveilConfig> | undefined, candidate),
+  );
+  if (!apiKey && tierEndpoint) {
+    apiKey = process.env.SURVEIL_FREE_OPENROUTER_KEY?.trim();
+  }
   const baseURL = userProvidesURL ? userValues?.baseURL : configuredBaseURL;
 
   const clientOptions: OpenAIConfigOptions = {

@@ -41,6 +41,7 @@ export type SectionId =
 
 export interface SettingsContextValue {
   balanceEnabled: boolean;
+  surveilEnabled: boolean;
   hasAnyPersonalizationFeature: boolean;
   hasMemoryOptOut: boolean;
   hasStatefulCodeSessions: boolean;

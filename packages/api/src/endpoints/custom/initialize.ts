@@ -228,7 +228,19 @@ export async function initializeCustom(
 
   let userValues = null;
   if (userProvidesKey || userProvidesURL) {
-    userValues = await db.getUserKeyValues({ userId: user?.id ?? '', name: endpoint });
+    try {
+      userValues = await db.getUserKeyValues({ userId: user?.id ?? '', name: endpoint });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (
+        !message.includes(ErrorTypes.NO_USER_KEY) &&
+        !message.includes(ErrorTypes.INVALID_USER_KEY)
+      ) {
+        throw error;
+      }
+      /** No stored key is the normal free-tier state; the shared fallback below handles it. */
+      userValues = null;
+    }
   }
 
   /**

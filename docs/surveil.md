@@ -92,6 +92,11 @@ set, free users get the full OpenRouter catalog, paid models stay locked in the 
 free models remain callable. Paid `invoice.paid` provisioning overwrites the fallback with
 the customer's managed key.
 
+The free catalog is only advertised in **Max Model Selection**. Commercial Privacy and
+Enterprise Vault hide `:free` models, plus the older free IDs without that suffix, because
+those models commonly retain prompts for provider training. Their fallback and title models
+are paid so a title request cannot leak prompt text to a data-training endpoint.
+
 ## 4. Run the stack
 
 ```

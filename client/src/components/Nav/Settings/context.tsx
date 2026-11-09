@@ -35,6 +35,7 @@ export function useSettingsContext(): SettingsContextValue {
   });
 
   const balanceEnabled = startupConfig?.balance?.enabled === true;
+  const surveilEnabled = startupConfig?.surveil?.enabled === true;
   const langfuseConnectionAccess = startupConfig?.langfuseConnectionAccess === true;
   const langfusePromptSyncAccess = startupConfig?.langfusePromptSyncAccess === true;
   const adminPanelURL = startupConfig?.adminPanelURL ?? '';
@@ -77,6 +78,7 @@ export function useSettingsContext(): SettingsContextValue {
   return useMemo(
     () => ({
       balanceEnabled,
+      surveilEnabled,
       hasAnyPersonalizationFeature,
       hasMemoryOptOut,
       hasStatefulCodeSessions,
@@ -105,6 +107,7 @@ export function useSettingsContext(): SettingsContextValue {
     }),
     [
       balanceEnabled,
+      surveilEnabled,
       hasAnyPersonalizationFeature,
       hasMemoryOptOut,
       hasStatefulCodeSessions,
