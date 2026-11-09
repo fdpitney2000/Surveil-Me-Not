@@ -950,10 +950,17 @@
     root.classList.remove('intro-active');
     window.scrollTo({ top: 0, behavior: 'instant' });
     try {
-      await animatePixels([header, main, footer], direction, true);
+      /** The page must arrive even if the decorative capture is slow or stalled. */
+      await Promise.race([
+        animatePixels([header, main, footer], direction, true),
+        new Promise((resolve) => setTimeout(resolve, 900)),
+      ]);
     } finally {
       root.classList.remove('home-arriving');
-      [header, main, footer].forEach((element) => { element.inert = false; });
+      [header, main, footer].forEach((element) => {
+        element.inert = false;
+        element.classList.remove('is-fragmenting');
+      });
       finished = true;
       main.focus({ preventScroll: true });
     }
@@ -962,6 +969,11 @@
   // Sample the actual laid-out glyphs, including inline accent colors and wrapping.
   // This stays local: no screenshot library, remote asset, or per-pixel DOM nodes.
   async function capturePixels(elements) {
+    const captureStarted = performance.now();
+    /** Decorative capture runs on the main thread; keep it far below the
+     *  threshold where a large viewport or slow layout makes the intro feel
+     *  broken. Partial particles are preferable to a multi-second freeze. */
+    const captureBudget = 600;
     const mask = document.createElement('canvas');
     mask.width = innerWidth;
     mask.height = innerHeight;
@@ -984,6 +996,7 @@
         const metrics = ctx.measureText('Mg');
         let offset = 0;
         for (const character of node.textContent) {
+          if (performance.now() - captureStarted > captureBudget) break;
           range.setStart(node, offset);
           offset += character.length;
           range.setEnd(node, offset);
@@ -1007,9 +1020,21 @@
         graphic.style.color = getComputedStyle(svg).color;
         image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
           new XMLSerializer().serializeToString(graphic));
-        graphics.push(image.decode().then(() => {
-          ctx.drawImage(image, rect.left, rect.top, rect.width, rect.height);
-        }).catch(() => { /* Text particles still work if an SVG cannot be decoded. */ }));
+        /** SVG decode can stall indefinitely for odd inline markup. A decorative
+         *  capture must never keep the intro on `is-fragmenting`; time-box it and
+         *  draw only when the bitmap is actually ready. */
+        const decoded = image.decode().catch(() => {});
+        graphics.push(Promise.race([
+          decoded,
+          new Promise((resolve) => setTimeout(resolve, 120)),
+        ]).then(() => {
+          if (!image.complete || !image.naturalWidth) return;
+          try {
+            ctx.drawImage(image, rect.left, rect.top, rect.width, rect.height);
+          } catch {
+            /* Text particles still work if an SVG cannot be painted. */
+          }
+        }));
       }
     }
     await Promise.all(graphics);
@@ -1017,6 +1042,7 @@
     const size = innerWidth < 600 ? 5 : 7;
     const particles = [];
     for (let y = 0; y < mask.height; y += size) {
+      if (performance.now() - captureStarted > captureBudget) break;
       for (let x = 0; x < mask.width; x += size) {
         let alpha = 0, red = 0, green = 0, blue = 0;
         for (let dy = 0; dy < size && y + dy < mask.height; dy++) {
@@ -1044,9 +1070,15 @@
     elements.forEach((element) => element.classList.add('is-fragmenting'));
     const restore = () => elements.forEach((element) => element.classList.remove('is-fragmenting'));
     let particles;
-    try { particles = await capture; }
-    catch { restore(); return; } // Decorative effects must never block navigation.
-    if (!particles.length) { restore(); return; }
+    try {
+      /** A decorative capture must not hold the intro hostage if the layout or
+       *  an SVG decode stalls; fall through to the plain slide change instead. */
+      particles = await Promise.race([
+        capture,
+        new Promise((resolve) => setTimeout(resolve, 900)),
+      ]);
+    } catch { restore(); return; } // Decorative effects must never block navigation.
+    if (!particles || !particles.length) { restore(); return; }
     const canvas = document.createElement('canvas');
     canvas.className = 'pixel-transition';
     canvas.setAttribute('aria-hidden', 'true');
@@ -1122,10 +1154,15 @@
     if (next < 0 || next > slides.length) return;
     busy = true;
     try {
-      await animatePixels([slides[current]], direction);
+      /** Never let a slow decorative capture trap the slide transition. */
+      await Promise.race([
+        animatePixels([slides[current]], direction),
+        new Promise((resolve) => setTimeout(resolve, 900)),
+      ]);
       if (next === slides.length) await finishIntro(direction);
       else showSlide(next);
     } finally {
+      slides.forEach((slide) => slide.classList.remove('is-fragmenting'));
       busy = false;
     }
   }
