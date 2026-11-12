@@ -65,7 +65,7 @@ describe('SurveilPlan settings', () => {
     render(<SurveilPlan />);
 
     expect(screen.getByText('$100/mo')).toBeInTheDocument();
-    expect(screen.getByText('$80.00')).toBeInTheDocument();
+    expect(screen.getByText('80%')).toBeInTheDocument();
     await userEvent.click(screen.getByText('com_surveil_manage'));
     expect(mockPortalMutate).toHaveBeenCalled();
   });

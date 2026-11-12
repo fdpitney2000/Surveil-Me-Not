@@ -58,8 +58,18 @@ describe('CreditsWidget', () => {
 
   it('shows the remaining balance and used amount', () => {
     render(<CreditsWidget />);
-    expect(screen.getByText('$58.80')).toBeInTheDocument();
+    expect(screen.getByText('82%')).toBeInTheDocument();
     expect(screen.getByText(/com_surveil_credits_used/)).toBeInTheDocument();
+  });
+
+  it('shows 100% at the start of a period', () => {
+    mockState.credits = {
+      ...activeCredits,
+      spentUSD: 0,
+      remainingUSD: activeCredits.grantUSD,
+    };
+    render(<CreditsWidget />);
+    expect(screen.getByText('100%')).toBeInTheDocument();
   });
 
   it('does not render a per-tier breakdown', () => {

@@ -16,6 +16,10 @@ function formatUsd(value: number): string {
   return `$${value.toFixed(2)}`;
 }
 
+function formatPercent(value: number): string {
+  return `${Math.round(Math.min(100, Math.max(0, value)))}%`;
+}
+
 function formatDate(value: string | null): string {
   if (!value) return '';
   try {
@@ -72,9 +76,10 @@ export default function CreditsWidget() {
   const portal = useCreateSurveilPortal();
   const redirect = useRedirect();
 
-  const percentUsed = useMemo(() => {
-    if (!credits || credits.grantUSD <= 0) return 0;
-    return Math.min(100, Math.max(0, (credits.spentUSD / credits.grantUSD) * 100));
+  const { percentUsed, percentRemaining } = useMemo(() => {
+    if (!credits || credits.grantUSD <= 0) return { percentUsed: 0, percentRemaining: 0 };
+    const used = Math.min(100, Math.max(0, (credits.spentUSD / credits.grantUSD) * 100));
+    return { percentUsed: used, percentRemaining: 100 - used };
   }, [credits]);
 
   if (!enabled || !credits) return null;
@@ -101,7 +106,7 @@ export default function CreditsWidget() {
               {localize('com_surveil_credits_remaining')}
             </span>
             <span className="text-text-primary text-sm font-semibold">
-              {formatUsd(credits.remainingUSD)}
+              {formatPercent(percentRemaining)}
             </span>
           </div>
 
@@ -119,7 +124,7 @@ export default function CreditsWidget() {
           </div>
 
           <span className="text-text-secondary text-xs">
-            {localize('com_surveil_credits_used')} {formatUsd(credits.spentUSD)}
+            {localize('com_surveil_credits_used')} {formatPercent(percentUsed)}
             {renews ? ` · ${localize('com_surveil_renews_on')} ${renews}` : ''}
           </span>
 

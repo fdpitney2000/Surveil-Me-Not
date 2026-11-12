@@ -18,6 +18,10 @@ function formatUsd(value: number): string {
   return `$${value.toFixed(2)}`;
 }
 
+function formatPercent(value: number): string {
+  return `${Math.round(Math.min(100, Math.max(0, value)))}%`;
+}
+
 function formatDate(value: string | null): string {
   if (!value) return '';
   try {
@@ -51,6 +55,8 @@ export function SurveilPlan() {
 
   const hasSubscription = credits.status !== 'none';
   const renews = formatDate(credits.renewsAt);
+  const percentRemaining =
+    credits.grantUSD > 0 ? (credits.remainingUSD / credits.grantUSD) * 100 : 0;
   const go = (url: string | null | undefined) => {
     if (url) window.location.href = url;
   };
@@ -70,7 +76,7 @@ export function SurveilPlan() {
               {localize('com_surveil_credits_remaining')}
             </span>
             <span className="text-text-primary text-sm font-medium">
-              {formatUsd(credits.remainingUSD)}
+              {formatPercent(percentRemaining)}
             </span>
           </div>
           <div className="flex items-center justify-between gap-3">
