@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Deploy only client/public/home.html from the local mvp branch.
+# Deploy only client/public/home.html from the active staging branch.
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
+
+BRANCH="${DEPLOY_BRANCH:-staging}"
 
 if [[ $# -ne 1 || -z "$1" ]]; then
   printf 'Usage: %s "commit message"\n' "$0" >&2
@@ -11,8 +13,8 @@ if [[ $# -ne 1 || -z "$1" ]]; then
 fi
 
 branch="$(git branch --show-current)"
-if [[ "$branch" != "mvp" ]]; then
-  printf 'Refusing to deploy: expected branch mvp, found %s\n' "${branch:-detached HEAD}" >&2
+if [[ "$branch" != "$BRANCH" ]]; then
+  printf 'Refusing to deploy: expected branch %s, found %s\n' "$BRANCH" "${branch:-detached HEAD}" >&2
   exit 1
 fi
 
@@ -34,7 +36,7 @@ fi
 
 git add -- client/public/home.html
 git commit -m "$1"
-git push origin mvp
+git push origin "$BRANCH"
 
 ssh deploy@2.24.99.27 \
-  'cd "$HOME/surveil-me-not" && git pull --ff-only origin mvp && docker compose -p surveil -f deploy-surveil.yml --profile proxy up -d --build && docker compose -p surveil -f deploy-surveil.yml --profile proxy ps'
+  "cd \"\$HOME/surveil-me-not\" && git pull --ff-only origin $BRANCH && docker compose -p surveil -f deploy-surveil.yml --profile proxy up -d --build && docker compose -p surveil -f deploy-surveil.yml --profile proxy ps"
