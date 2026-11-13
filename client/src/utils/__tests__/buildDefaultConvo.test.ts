@@ -18,6 +18,27 @@ const baseConversation: TConversation = {
   endpoint: null,
 };
 
+describe('buildDefaultConvo - preferred Surveil model', () => {
+  it('overrides a stale paid model with the free-tier default', () => {
+    const preset: TConversation = {
+      ...baseConversation,
+      endpoint: 'Max Model Selection' as EModelEndpoint,
+      endpointType: EModelEndpoint.custom,
+      model: 'google/gemini-4-hydrogen',
+    };
+
+    const result = buildDefaultConvo({
+      models: ['google/gemini-4-hydrogen', 'google/gemma-4-31b-it:free'],
+      conversation: baseConversation,
+      endpoint: 'Max Model Selection' as EModelEndpoint,
+      lastConversationSetup: preset,
+      preferredModel: 'google/gemma-4-31b-it:free',
+    });
+
+    expect(result.model).toBe('google/gemma-4-31b-it:free');
+  });
+});
+
 describe('buildDefaultConvo - defaultParamsEndpoint', () => {
   describe('custom endpoint with defaultParamsEndpoint: anthropic', () => {
     const models = ['anthropic/claude-opus-4.5', 'anthropic/claude-sonnet-4'];

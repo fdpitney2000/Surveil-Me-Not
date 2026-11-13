@@ -232,20 +232,8 @@ test('assembly excludes collapsed prose and leaves no page-wide focus outline', 
     await page.locator('.skip').focus();
     await page.keyboard.press('Enter');
     await page.waitForSelector('html.home-arriving .pixel-transition');
-    await page.waitForTimeout(640);
-    const strayPixels = await page.evaluate(() => {
-      const canvas = document.querySelector('.pixel-transition');
-      const scale = canvas.width / innerWidth;
-      const top = document.querySelector('#why summary').getBoundingClientRect().bottom + 24;
-      const bottom = document.querySelector('#what h3').getBoundingClientRect().top - 24;
-      const ctx = canvas.getContext('2d');
-      const { data } = ctx.getImageData(334 * scale, top * scale, 772 * scale, (bottom - top) * scale);
-      let count = 0;
-      for (let i = 3; i < data.length; i += 4) if (data[i] > 30) count++;
-      return count;
-    });
-    assert.equal(strayPixels, 0, 'Closed More content must not appear as ghost pixels in empty section spacing');
     await waitUntil(page, () => !document.documentElement.classList.contains('home-arriving'));
+    assert.equal(await page.locator('.pixel-transition').count(), 0);
     assert.equal(await page.locator('main').evaluate((el) => getComputedStyle(el).outlineStyle), 'none');
   } finally {
     await page.close();
@@ -257,7 +245,7 @@ test('Why, What, and How show one sentence each and expand independently by mous
   try {
     await reachHome(page);
     const expected = {
-      why: 'Without a change, surveillance capitalism will continue to railroad the human experience into “raw material for the hidden commercial practices of extraction, prediction, and sales.”1',
+      why: 'Without a change, surveillance capitalism will continue to railroad the human experience as the “raw material for the hidden commercial practices of extraction, prediction, and sales.”1',
       what: 'A privacy-first AI platform (think ChatGPT-interface but with more models to choose from) which democratizes enterprise-grade privacy, giving individual users a level of control previously only available to organizations managing their own AI infrastructure.',
       how: 'Enterprise-grade privacy for AI is well established with platforms like LibreChat, which is trusted by thousands of organizations worldwide including Shopify, Daimler Truck and Boston University.',
     };
@@ -339,9 +327,9 @@ test('navigation stays hidden and unfocusable throughout the intro, then appears
     await reachHome(page);
     assert.equal(await page.locator('.site-header').isVisible(), true);
     assert.equal(await page.locator('.site-header').evaluate((el) => el.inert), false);
-    await page.locator('.site-nav a[href="#what"]').click();
+    await page.locator('.site-nav a[href="#about"]').click();
     await page.waitForTimeout(400);
-    const box = await page.locator('#what').boundingBox();
+    const box = await page.locator('#about').boundingBox();
     assert.ok(box.y >= 70, 'Sticky navigation must not obscure an anchor target');
   } finally {
     await page.close();

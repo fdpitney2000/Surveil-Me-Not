@@ -15,12 +15,15 @@ const buildDefaultConvo = ({
   endpoint = null,
   lastConversationSetup,
   defaultParamsEndpoint,
+  preferredModel,
 }: {
   models: string[];
   conversation: TConversation;
   endpoint?: EModelEndpoint | null;
   lastConversationSetup: TConversation | null;
   defaultParamsEndpoint?: string | null;
+  /** A tier-safe default that overrides a stale paid model stored from another account. */
+  preferredModel?: string;
 }): TConversation => {
   const { lastSelectedModel, lastSelectedTools } = getLocalStorageItems();
   const endpointType = lastConversationSetup?.endpointType ?? conversation.endpointType;
@@ -34,7 +37,8 @@ const buildDefaultConvo = ({
   }
 
   const availableModels = models;
-  const model = lastConversationSetup?.model ?? lastSelectedModel?.[endpoint] ?? '';
+  const model =
+    preferredModel ?? lastConversationSetup?.model ?? lastSelectedModel?.[endpoint] ?? '';
 
   let possibleModels: string[];
 

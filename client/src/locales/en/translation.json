@@ -3750,7 +3750,7 @@
   "com_surveil_expire_notice": "Unused credits expire at the end of each period.",
   "com_surveil_low_balance": "Low balance — upgrade your plan to add credits.",
   "com_surveil_exhausted": "No credits left. Renews or upgrade to continue.",
-  "com_surveil_model_locked": "Subscribe to unlock this model",
+  "com_surveil_model_locked": "This model is only available under the paid plans",
   "com_surveil_free_model": "Free",
   "com_surveil_manage": "Manage / Upgrade",
   "com_surveil_refresh": "Refresh",
