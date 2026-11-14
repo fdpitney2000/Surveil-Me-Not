@@ -97,6 +97,12 @@ Enterprise Vault hide `:free` models, plus the older free IDs without that suffi
 those models commonly retain prompts for provider training. Their fallback and title models
 are paid so a title request cannot leak prompt text to a data-training endpoint.
 
+OpenRouter's catalog also contains image, audio, and video generators. The model fetch filters
+those to `architecture.output_modalities = ['text']`, so only text-output chat models reach
+the picker; sending an image/audio model through the chat route otherwise surfaces as a
+provider rate/spend error. OpenRouter exposes no quality or popularity score, so the remaining
+models are ranked by context-window size descending, with newer models as the tie-breaker.
+
 ## 4. Run the stack
 
 ```

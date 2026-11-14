@@ -79,6 +79,57 @@ beforeEach(() => {
   mockCreateSSRFSafeAgents.mockClear();
 });
 
+describe('fetchModels OpenRouter catalog', () => {
+  it('hides non-chat models and ranks text chat models by context length', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        data: [
+          {
+            id: 'text-small:free',
+            context_length: 8000,
+            created: 1,
+            architecture: { output_modalities: ['text'] },
+          },
+          {
+            id: 'image-pro',
+            context_length: 200000,
+            created: 2,
+            architecture: { output_modalities: ['text', 'image'] },
+          },
+          {
+            id: 'text-large',
+            context_length: 200000,
+            created: 3,
+            architecture: { output_modalities: ['text'] },
+          },
+          {
+            id: 'audio-chat',
+            context_length: 128000,
+            created: 4,
+            architecture: { output_modalities: ['text', 'audio'] },
+          },
+          {
+            id: 'text-embedding',
+            context_length: 8192,
+            created: 5,
+            architecture: { output_modalities: ['embeddings'] },
+          },
+        ],
+      },
+    });
+
+    const models = await fetchModels({
+      apiKey: 'test-key',
+      baseURL: 'https://openrouter.ai/api/v1',
+      name: 'OpenRouter',
+      skipCache: true,
+      createTokenConfig: false,
+    });
+
+    expect(models).toEqual(['text-large', 'text-small:free']);
+  });
+});
+
 describe('fetchModels', () => {
   it('fetches models successfully from the API', async () => {
     const models = await fetchModels({

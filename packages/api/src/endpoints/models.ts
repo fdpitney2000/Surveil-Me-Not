@@ -26,6 +26,64 @@ import { standardCache, tokenConfigCache } from '~/cache';
 
 type SSRFSafeAgents = ReturnType<typeof createSSRFSafeAgents>;
 
+type OpenRouterCatalogEntry = {
+  id?: string;
+  context_length?: number;
+  created?: number;
+  architecture?: {
+    modality?: string;
+    output_modalities?: string[];
+  };
+};
+
+/** OpenRouter's `/models` endpoint is the only catalog with architecture metadata. */
+function isOpenRouterBaseURL(baseURL?: string | null): boolean {
+  if (!baseURL) return false;
+  try {
+    const hostname = new URL(baseURL).hostname;
+    return hostname === 'openrouter.ai' || hostname.endsWith('.openrouter.ai');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The chat selector should only offer models that produce text. Image, audio,
+ * video, and embedding/rerank models are valid OpenRouter APIs, but they do not
+ * fit this chat surface and can fail with provider rate/spend errors when sent
+ * through the chat completion path.
+ */
+function isTextChatCatalogModel(model: OpenRouterCatalogEntry): boolean {
+  const outputModalities = model.architecture?.output_modalities;
+  if (Array.isArray(outputModalities) && outputModalities.length > 0) {
+    return outputModalities.length === 1 && outputModalities[0] === 'text';
+  }
+
+  const modality = model.architecture?.modality;
+  if (typeof modality === 'string' && modality.includes('->')) {
+    const outputs = modality.split('->').pop()?.split('+') ?? [];
+    return outputs.length === 1 && outputs[0] === 'text';
+  }
+
+  // Older/custom catalogs may omit architecture metadata; exclude obvious non-chat ids.
+  return !/(?:^|[/:_-])(embedding|embed|rerank|moderation|tts|whisper|image|video|audio)(?:$|[/:_-])/i.test(
+    model.id ?? '',
+  );
+}
+
+/**
+ * OpenRouter exposes context length and creation time, but not a quality or
+ * popularity score. Use context window as the capability/size proxy and newest
+ * as the tie-breaker so the most capable chat models surface first.
+ */
+function sortOpenRouterCatalog(models: OpenRouterCatalogEntry[]): OpenRouterCatalogEntry[] {
+  return [...models].sort((a, b) => {
+    const contextDiff = (b.context_length ?? 0) - (a.context_length ?? 0);
+    if (contextDiff !== 0) return contextDiff;
+    return (b.created ?? 0) - (a.created ?? 0);
+  });
+}
+
 export interface FetchModelsParams {
   /** User ID for API requests */
   user?: string;
@@ -298,7 +356,14 @@ export async function fetchModels({
         await cache.set(getModelCacheTokenConfigKey(cacheKey), endpointTokenConfig);
       }
     }
-    models = input.data.map((item: { id: string }) => item.id);
+
+    /** Filter and rank only on OpenRouter; other OpenAI-compatible gateways may
+     *  omit architecture metadata or expose their own catalog semantics. */
+    const catalog = Array.isArray(input?.data) ? (input.data as OpenRouterCatalogEntry[]) : [];
+    const visibleCatalog = isOpenRouterBaseURL(baseURL)
+      ? sortOpenRouterCatalog(catalog.filter(isTextChatCatalogModel))
+      : catalog;
+    models = visibleCatalog.map((item) => item.id).filter((id): id is string => !!id);
   } catch (error) {
     const logMessage = `Failed to fetch models from ${azure ? 'Azure ' : ''}${name} API`;
     logAxiosError({ message: logMessage, error: error as Error });
