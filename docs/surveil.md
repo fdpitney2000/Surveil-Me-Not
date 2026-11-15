@@ -100,8 +100,11 @@ are paid so a title request cannot leak prompt text to a data-training endpoint.
 OpenRouter's catalog also contains image, audio, and video generators. The model fetch filters
 those to `architecture.output_modalities = ['text']`, so only text-output chat models reach
 the picker; sending an image/audio model through the chat route otherwise surfaces as a
-provider rate/spend error. OpenRouter exposes no quality or popularity score, so the remaining
-models are ranked by context-window size descending, with newer models as the tie-breaker.
+provider rate/spend error. Auto/router entries with sentinel prices (for example
+`openrouter/pareto-code` at `-1`) are also excluded because they are not concrete free chat
+models and can be unavailable to the shared key. OpenRouter exposes no quality or popularity
+score, so the remaining models are ranked by context-window size descending, with newer models
+as the tie-breaker.
 
 The free-key guardrail stores an explicit allowlist, and OpenRouter changes free-model aliases
 over time (new dated canonical slugs, new `:free` entries). Refresh it without rotating the key

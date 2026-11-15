@@ -91,6 +91,13 @@ describe('fetchModels OpenRouter catalog', () => {
             architecture: { output_modalities: ['text'] },
           },
           {
+            id: 'openrouter/pareto-code',
+            context_length: 2000000,
+            created: 6,
+            pricing: { prompt: '-1', completion: '-1' },
+            architecture: { output_modalities: ['text'] },
+          },
+          {
             id: 'image-pro',
             context_length: 200000,
             created: 2,

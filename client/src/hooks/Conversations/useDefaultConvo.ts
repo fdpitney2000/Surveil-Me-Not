@@ -22,7 +22,15 @@ type TDefaultConvo = {
 };
 
 const exceptions = new Set(['spec', 'iconURL']);
-const PREFERRED_FREE_MODEL = 'google/gemma-4-31b-it:free';
+const PREFERRED_FREE_MODELS = [
+  'inclusionai/ling-3.2-flash:free',
+  'google/gemma-4-31b-it:free',
+];
+const FALLBACK_SURVEIL_TIERS = new Set([
+  'Max Model Selection',
+  'Commercial Privacy',
+  'Enterprise Vault',
+]);
 
 const useDefaultConvo = () => {
   const { data: endpointsConfig = {} as TEndpointsConfig } = useGetEndpointsQuery();
@@ -39,13 +47,14 @@ const useDefaultConvo = () => {
       });
 
       const models = modelsConfig[resolveModelCatalogKey(endpoint, modelsConfig)] || [];
-      const isSurveilTier = startupConfig?.surveil?.tiers.some(
-        (tier) => tier.endpoint === endpoint,
-      );
+      const configuredTiers = startupConfig?.surveil?.tiers;
+      const isSurveilTier = configuredTiers?.length
+        ? configuredTiers.some((tier) => tier.endpoint === endpoint)
+        : FALLBACK_SURVEIL_TIERS.has(String(endpoint));
       const hasNoSubscription = surveilCredits == null || surveilCredits.status === 'none';
       const preferredModel =
         isSurveilTier && hasNoSubscription
-          ? models.find((model) => model === PREFERRED_FREE_MODEL) ??
+          ? PREFERRED_FREE_MODELS.find((model) => models.includes(model)) ??
             models.find((model) => model.endsWith(':free')) ??
             models[0]
           : undefined;

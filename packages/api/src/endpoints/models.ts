@@ -30,6 +30,7 @@ type OpenRouterCatalogEntry = {
   id?: string;
   context_length?: number;
   created?: number;
+  pricing?: Record<string, string>;
   architecture?: {
     modality?: string;
     output_modalities?: string[];
@@ -54,6 +55,15 @@ function isOpenRouterBaseURL(baseURL?: string | null): boolean {
  * through the chat completion path.
  */
 function isTextChatCatalogModel(model: OpenRouterCatalogEntry): boolean {
+  /** Auto/router entries use sentinel prices (for example -1) and are not
+   *  concrete free chat models; they can also be unavailable to the free key. */
+  if (
+    Number(model.pricing?.prompt) < 0 ||
+    Number(model.pricing?.completion) < 0
+  ) {
+    return false;
+  }
+
   const outputModalities = model.architecture?.output_modalities;
   if (Array.isArray(outputModalities) && outputModalities.length > 0) {
     return outputModalities.length === 1 && outputModalities[0] === 'text';
