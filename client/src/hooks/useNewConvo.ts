@@ -52,7 +52,13 @@ import {
   logger,
   setDocumentTitle,
 } from '~/utils';
-import { useDeleteFilesMutation, useGetEndpointsQuery, useGetStartupConfig } from '~/data-provider';
+import {
+  useDeleteFilesMutation,
+  useGetEndpointsQuery,
+  useGetStartupConfig,
+  useSurveilCredits,
+} from '~/data-provider';
+import { getPreferredFreeModel, isSurveilTierEndpoint } from '~/utils/surveilModelDefaults';
 import { supersedeNavigation } from './Conversations/useNavigateToConvo';
 import useGetConversation from './Conversations/useGetConversation';
 import useAssistantListMap from './Assistants/useAssistantListMap';
@@ -82,6 +88,9 @@ const useNewConvo = (index = 0) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { data: startupConfig } = useGetStartupConfig();
+  const { data: surveilCredits } = useSurveilCredits({
+    enabled: startupConfig?.surveil?.enabled === true,
+  });
   const getConversation = useGetConversation(index);
   const applyModelSpecEffects = useApplyModelSpecEffects();
   const clearAllConversations = store.useClearConvoState();
@@ -233,12 +242,21 @@ const useNewConvo = (index = 0) => {
 
           const models = modelsConfig?.[defaultEndpoint] ?? [];
           const defaultParamsEndpoint = getDefaultParamsEndpoint(endpointsConfig, defaultEndpoint);
+          const isSurveilTier = isSurveilTierEndpoint(
+            defaultEndpoint,
+            startupConfig?.surveil?.tiers,
+          );
+          const hasNoSubscription =
+            surveilCredits == null || surveilCredits.status === 'none';
+          const preferredModel =
+            isSurveilTier && hasNoSubscription ? getPreferredFreeModel(models) : undefined;
           conversation = buildDefaultConvo({
             conversation,
             lastConversationSetup: activePreset as TConversation,
             endpoint: defaultEndpoint,
             models,
             defaultParamsEndpoint,
+            preferredModel,
           });
 
           if (hasExplicitChatProjectId) {

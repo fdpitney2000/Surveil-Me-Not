@@ -127,6 +127,7 @@ jest.mock('~/data-provider', () => ({
   useDeleteFilesMutation: () => ({ mutateAsync: mockDeleteFiles }),
   useGetEndpointsQuery: () => ({ data: {} }),
   useGetStartupConfig: () => ({ data: {} }),
+  useSurveilCredits: () => ({ data: null }),
   useGetFiles: () => ({ data: mockFileList }),
   useGetFileConfig: () => ({ data: null }),
   useGetAgentByIdQuery: () => ({ data: undefined }),
