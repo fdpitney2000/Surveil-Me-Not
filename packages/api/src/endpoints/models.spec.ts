@@ -98,6 +98,13 @@ describe('fetchModels OpenRouter catalog', () => {
             architecture: { output_modalities: ['text'] },
           },
           {
+            id: 'openrouter/free',
+            context_length: 200000,
+            created: 7,
+            pricing: { prompt: '0', completion: '0' },
+            architecture: { output_modalities: ['text'] },
+          },
+          {
             id: 'image-pro',
             context_length: 200000,
             created: 2,

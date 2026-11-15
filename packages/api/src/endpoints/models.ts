@@ -55,6 +55,12 @@ function isOpenRouterBaseURL(baseURL?: string | null): boolean {
  * through the chat completion path.
  */
 function isTextChatCatalogModel(model: OpenRouterCatalogEntry): boolean {
+  /** OpenRouter's `openrouter/*` entries are meta-routers, not concrete
+   *  models; they can route unpredictably or be unavailable to the free key. */
+  if (model.id?.startsWith('openrouter/')) {
+    return false;
+  }
+
   /** Auto/router entries use sentinel prices (for example -1) and are not
    *  concrete free chat models; they can also be unavailable to the free key. */
   if (

@@ -2,6 +2,9 @@
 
 /** The chat selector should only offer models that produce text. */
 export function isTextChatModel(model) {
+  // `openrouter/*` entries are meta-routers, not concrete chat models.
+  if (typeof model?.id === 'string' && model.id.startsWith('openrouter/')) return false;
+
   const outputModalities = model?.architecture?.output_modalities;
   if (Array.isArray(outputModalities) && outputModalities.length > 0) {
     return outputModalities.length === 1 && outputModalities[0] === 'text';
