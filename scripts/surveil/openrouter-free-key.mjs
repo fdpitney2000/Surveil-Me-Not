@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { openRouterClient, api } from './lib/runtime.mjs';
 import { repoRoot } from './lib/env.mjs';
+import { freeModelAllowedIds } from './lib/free-model-catalog.mjs';
 
 const FREE_GUARDRAIL = 'surveil:free';
 const FREE_KEY_NAME = 'surveil:free';
@@ -22,15 +23,10 @@ const apiModule = api();
 const client = openRouterClient(apiModule);
 
 const models = await client.listModels();
-const freeModelIds = models
-  .filter((model) => {
-    if (model.id.endsWith(':free')) return true;
-    return model.pricing?.prompt === '0' && model.pricing?.completion === '0';
-  })
-  .map((model) => model.id);
+const freeModelIds = freeModelAllowedIds(models);
 
 if (freeModelIds.length === 0) {
-  console.error('No free OpenRouter models found; refusing to create the shared key.');
+  console.error('No free text-chat OpenRouter models found; refusing to create the shared key.');
   process.exit(1);
 }
 

@@ -103,6 +103,17 @@ the picker; sending an image/audio model through the chat route otherwise surfac
 provider rate/spend error. OpenRouter exposes no quality or popularity score, so the remaining
 models are ranked by context-window size descending, with newer models as the tie-breaker.
 
+The free-key guardrail stores an explicit allowlist, and OpenRouter changes free-model aliases
+over time (new dated canonical slugs, new `:free` entries). Refresh it without rotating the key
+when a newly advertised free model returns “model blocked by guardrail”:
+
+```
+npm run surveil:openrouter-free-sync
+```
+
+The sync includes both the short alias and the dated canonical slug for each free text-chat
+model, excludes audio/image generators, and reattaches the existing `surveil:free` key.
+
 ## 4. Run the stack
 
 ```
