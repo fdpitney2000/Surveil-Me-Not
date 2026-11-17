@@ -117,6 +117,27 @@ npm run surveil:openrouter-free-sync
 The sync includes both the short alias and the dated canonical slug for each free text-chat
 model, excludes audio/image generators, and reattaches the existing `surveil:free` key.
 
+## Web search (Tavily)
+
+`SEARCH=true` is **not** web search; it enables Meilisearch conversation/message search and
+also requires a unique `MEILI_MASTER_KEY`. Tavily web search is configured in `librechat.yaml`:
+
+```yaml
+interface:
+  webSearch: true
+
+webSearch:
+  searchProvider: tavily
+  scraperProvider: tavily
+  rerankerType: none
+  tavilyApiKey: '${TAVILY_API_KEY}'
+```
+
+Set `TAVILY_API_KEY` in `.env`, then recreate the API (`up -d --force-recreate api`, no rebuild
+needed because the yaml is bind-mounted). The `web_search` tool is offered to chat models that
+support tool calling; it cannot be forced onto a model that has no tool support. Tavily is
+third-party egress and is only a temporary testing provider.
+
 ## 4. Run the stack
 
 ```
