@@ -129,6 +129,7 @@ import { buildEffectiveToolApprovalPolicy } from '~/agents/hitl/allow';
 import { prepareQueuedCodeFileContext } from '~/files/code/queued';
 import { getBuiltInBaseURL } from '~/endpoints/openai/initialize';
 import { getProviderConfig } from '~/endpoints/config/providers';
+import { getCustomEndpointConfig } from '~/app/config';
 import { buildToolApprovalHooks } from '~/agents/hitl/hooks';
 import { getAgentCheckpointer } from '~/agents/checkpointer';
 import { getPluginHookSource } from '~/agents/hooks/source';
@@ -1346,6 +1347,43 @@ function resolveSummarizationProvider(
   }
 }
 
+function isSameCustomProviderEndpoint(
+  agentEndpoint: string | undefined,
+  rawProvider: string,
+  appConfig: AppConfig | undefined,
+): boolean {
+  if (!agentEndpoint || !appConfig || !isNonEmptyString(rawProvider)) {
+    return false;
+  }
+
+  try {
+    const endpointConfig = getCustomEndpointConfig({ endpoint: agentEndpoint, appConfig });
+    if (!endpointConfig) {
+      return false;
+    }
+
+    const provider = endpointConfig.provider?.toLowerCase();
+    if (provider && provider === rawProvider.toLowerCase()) {
+      return true;
+    }
+
+    /** OpenRouter is exposed as a custom endpoint whose configured provider is
+     *  detected from its base URL, not necessarily written as `provider: openrouter`. */
+    if (rawProvider.toLowerCase() !== Providers.OPENROUTER) {
+      return false;
+    }
+    const baseURL = endpointConfig.baseURL ?? '';
+    try {
+      const hostname = new URL(baseURL).hostname;
+      return hostname === 'openrouter.ai' || hostname.endsWith('.openrouter.ai');
+    } catch {
+      return baseURL.includes('openrouter.ai');
+    }
+  } catch {
+    return false;
+  }
+}
+
 /** Shapes a SummarizationConfig into the format expected by AgentInputs. */
 function shapeSummarizationConfig(
   config: SummarizationConfig | undefined,
@@ -1365,9 +1403,10 @@ function shapeSummarizationConfig(
    * that `getOpenAIConfig` produced from raw yaml config does not capture.
    */
   const isSameEndpointAsAgent =
-    agentEndpoint != null &&
-    isNonEmptyString(rawProvider) &&
-    normalizeEndpointName(rawProvider) === normalizeEndpointName(agentEndpoint);
+    (agentEndpoint != null &&
+      isNonEmptyString(rawProvider) &&
+      normalizeEndpointName(rawProvider) === normalizeEndpointName(agentEndpoint)) ||
+    isSameCustomProviderEndpoint(agentEndpoint, rawProvider, appConfig);
 
   const model = config?.model ?? fallbackModel;
   const targetsAzure =
