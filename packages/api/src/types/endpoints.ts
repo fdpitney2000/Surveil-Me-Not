@@ -14,6 +14,8 @@ export type TCustomEndpointsConfig = Partial<{ [key: string]: Omit<TConfig, 'ord
 export interface UserKeyValues {
   apiKey?: string;
   baseURL?: string;
+  /** Marks the stored key as a subsidized free-tier key (never sent to the client). */
+  surveilFree?: boolean;
 }
 
 /**

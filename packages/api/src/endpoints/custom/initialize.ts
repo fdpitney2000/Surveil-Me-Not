@@ -13,6 +13,7 @@ import type {
   EndpointTokenConfig,
   AnthropicModelOptions,
   ProviderInitializeParams,
+  UserKeyValues,
 } from '~/types';
 import { getLLMConfig as getAnthropicLLMConfig } from '~/endpoints/anthropic/llm';
 import { resolveModelTransportTimeouts } from '~/agents/config';
@@ -24,6 +25,12 @@ import { getScopedTokenConfigKey } from '~/endpoints/keys';
 import { resolveCustomEndpointParameters } from './config';
 import { getCustomEndpointConfig } from '~/app/config';
 import { resolveSurveilConfig } from '~/surveil/config';
+import {
+  assertFreeTierAvailable,
+  ensureFreeTierKey,
+  isStoredFreeKey,
+} from '~/surveil/free-tier';
+import { createOpenRouterClientFromEnv } from '~/surveil/openrouter/client';
 import { resolveEndpointRuntime } from '~/types';
 import { fetchModels } from '~/endpoints/models';
 import { validateEndpointURL } from '~/auth';
@@ -226,7 +233,7 @@ export async function initializeCustom(
     checkUserKeyExpiry(expiresAt, endpoint);
   }
 
-  let userValues = null;
+  let userValues: (UserKeyValues & { surveilFree?: boolean }) | null = null;
   if (userProvidesKey || userProvidesURL) {
     try {
       userValues = await db.getUserKeyValues({ userId: user?.id ?? '', name: endpoint });
@@ -238,28 +245,46 @@ export async function initializeCustom(
       ) {
         throw error;
       }
-      /** No stored key is the normal free-tier state; the shared fallback below handles it. */
+      /** No stored key is the normal first-request free-tier state. */
       userValues = null;
     }
   }
 
   /**
    * Surveil free tier: a paid subscriber has a managed key in the encrypted store, but a
-   * signed-up user without a subscription does not. Fall back to the shared free-model key
-   * so the picker can load the real OpenRouter catalog and free models remain callable.
-   * The shared key is restricted by an OpenRouter guardrail and never leaves the server.
+   * signed-up user without a subscription does not. Provision (or recover) a per-user
+   * $2/month key assigned to the free guardrail on first use. This key is stored under the
+   * tier endpoints and never leaves the server.
    */
   const surveil = resolveSurveilConfig(
     appConfig?.surveil as Partial<TSurveilConfig> | undefined,
   );
   const isSurveilTier =
     surveil.enabled && surveil.tiers.some((tier) => tier.endpoint === endpoint);
-  const sharedFreeKey = isSurveilTier
-    ? process.env.SURVEIL_FREE_OPENROUTER_KEY?.trim()
-    : undefined;
+
+  if (isSurveilTier && user?.id && !userValues?.apiKey) {
+    const client = createOpenRouterClientFromEnv();
+    if (!client) {
+      throw new Error('Surveil free tier is not configured.');
+    }
+    const free = await ensureFreeTierKey({
+      client,
+      db: db as unknown as import('~/surveil/provision').SurveilKeyStore,
+      userId: user.id,
+      config: surveil,
+    });
+    userValues = { apiKey: free.apiKey, surveilFree: true };
+  }
+
+  if (isSurveilTier && isStoredFreeKey(userValues)) {
+    const client = createOpenRouterClientFromEnv();
+    if (client) {
+      await assertFreeTierAvailable({ client, config: surveil });
+    }
+  }
 
   const apiKey =
-    userProvidesKey || userProvidesURL ? userValues?.apiKey || sharedFreeKey : CUSTOM_API_KEY;
+    userProvidesKey || userProvidesURL ? userValues?.apiKey : CUSTOM_API_KEY;
   const baseURL = userProvidesURL ? userValues?.baseURL : CUSTOM_BASE_URL;
 
   if ((userProvidesKey || userProvidesURL) && !apiKey) {

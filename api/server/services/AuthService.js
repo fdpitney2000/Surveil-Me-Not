@@ -466,10 +466,10 @@ const registerUser = async (user, additionalData = {}) => {
       await updateUser(newUserId, { emailVerified: true });
     }
 
-    /** Surveil: best-effort limit-0 OpenRouter keys so free users can browse the real
-     * catalog and use :free models. The module never throws and must stay inside its own
-     * try/catch regardless: the outer catch below deletes the just-created account on any
-     * error, and a provisioning outage must not cost a registration. */
+    /** Surveil: best-effort per-user free key so the subsidized catalog is ready on
+     * first chat. The module never throws and must stay inside its own try/catch
+     * regardless: the outer catch below deletes the just-created account on any error,
+     * and a provisioning outage must not cost a registration. */
     try {
       await provisionUserOnRegistration({
         db: keyStore,

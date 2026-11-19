@@ -18,7 +18,6 @@ const RECOMMENDED = [
   'STRIPE_PRICE_50_ID',
   'STRIPE_PRICE_100_ID',
   'STRIPE_PRICE_200_ID',
-  'SURVEIL_FREE_OPENROUTER_KEY',
 ];
 
 /** Resolve a variable or its alias, returning the name that is set. */

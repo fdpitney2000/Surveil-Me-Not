@@ -29,6 +29,7 @@ export const errorCopy: Record<string, TranslationKeys> = {
   [ErrorTypes.STREAM_EXPIRED]: 'com_error_stream_expired',
   [ErrorTypes.MODEL_NOT_FOUND]: 'com_error_model_not_found',
   [ErrorTypes.MODEL_RATE_LIMIT]: 'com_error_model_rate_limit',
+  [ErrorTypes.SURVEIL_FREE_TIER_EXHAUSTED]: 'com_error_surveil_free_tier_exhausted',
   [ErrorTypes.MODEL_STREAM_CLOSED]: 'com_error_model_stream_closed',
   [ErrorTypes.MODEL_STREAM_STALLED]: 'com_error_model_stream_stalled',
   [ErrorTypes.COMPACTION_FAILED]: 'com_error_compaction_failed',

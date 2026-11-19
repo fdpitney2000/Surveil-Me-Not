@@ -4504,6 +4504,22 @@ export const surveilConfigSchema = z
     proxyEnabled: z.boolean().default(false),
     /** Provision a zero-limit OpenRouter key when a user registers (disabled for beta). */
     provisionOnRegistration: z.boolean().default(false),
+    /** Enable the subsidized free tier backed by one capped OpenRouter key per user. */
+    freeTierEnabled: z.boolean().default(true),
+    /** Per-user free-tier spend cap in USD, reset by OpenRouter at the calendar month. */
+    freeTierMonthlyUsd: z.number().positive().default(2),
+    /** Aggregate free-tier spend ceiling in USD across all free users. */
+    freeTierGlobalUsd: z.number().positive().default(10),
+    /** Maximum number of models shown in the free-tier picker. */
+    freeTierMaxModels: z.number().int().positive().max(50).default(10),
+    /** Maximum output-token price in USD per one million tokens (pinned model exempt). */
+    freeTierMaxOutputPricePerMillionUsd: z.number().positive().default(1),
+    /** Maximum model age in days, measured from OpenRouter's release timestamp. */
+    freeTierMaxAgeDays: z.number().int().positive().default(183),
+    /** Model pinned to the top of the free-tier picker. */
+    freeTierPinnedModel: z.string().min(1).default('deepseek/deepseek-v4.1-flash'),
+    /** Provision the per-user free key at registration instead of on first chat. */
+    provisionFreeOnRegistration: z.boolean().default(true),
     /** The three tier definitions, mapped to custom endpoints by name. */
     tiers: z.array(surveilTierSchema).default([
       {
@@ -5557,6 +5573,10 @@ export enum ErrorTypes {
    * Provider throttled or refused the request for exceeding a rate/spend allowance
    */
   MODEL_RATE_LIMIT = 'model_rate_limit',
+  /**
+   * The subsidized free-tier aggregate budget is exhausted for this month.
+   */
+  SURVEIL_FREE_TIER_EXHAUSTED = 'surveil_free_tier_exhausted',
   /**
    * Provider accepted the request, then closed the connection before the response finished
    */

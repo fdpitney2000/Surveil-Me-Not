@@ -22,6 +22,11 @@ import {
 } from '~/utils';
 import { getModelCacheTokenConfigKey, isScopedTokenConfigKey } from '~/endpoints/keys';
 import { createSSRFSafeAgents, validateEndpointURL } from '~/auth';
+import {
+  DEFAULT_FREE_MODEL_POLICY,
+  selectFreeTierModels,
+  type FreeModelPolicy,
+} from '~/surveil/free-models';
 import { standardCache, tokenConfigCache } from '~/cache';
 
 type SSRFSafeAgents = ReturnType<typeof createSSRFSafeAgents>;
@@ -31,6 +36,7 @@ type OpenRouterCatalogEntry = {
   context_length?: number;
   created?: number;
   pricing?: Record<string, string>;
+  supported_parameters?: string[];
   architecture?: {
     modality?: string;
     output_modalities?: string[];
@@ -129,6 +135,10 @@ export interface FetchModelsParams {
   userObject?: Partial<IUser>;
   /** Skip MODEL_QUERIES cache (e.g., for user-provided keys) */
   skipCache?: boolean;
+  /** Restrict the OpenRouter catalog to the subsidized free-tier policy. */
+  surveilFree?: boolean;
+  /** Policy used when `surveilFree` is true. */
+  freeTierPolicy?: FreeModelPolicy;
 }
 
 function applyUserProvidedBaseURLProtection(
@@ -240,6 +250,8 @@ export async function fetchModels({
   headers,
   userObject,
   skipCache = false,
+  surveilFree = false,
+  freeTierPolicy = DEFAULT_FREE_MODEL_POLICY,
 }: FetchModelsParams): Promise<string[]> {
   let models: string[] = [];
   const baseURL = direct ? extractBaseURL(_baseURL ?? '') : _baseURL;
@@ -266,7 +278,9 @@ export async function fetchModels({
   // and `userObject` are supplied, since that's the signal the caller is
   // resolving headers against a specific user's identity.
   const hasUserScopedHeaders = !!headers && Object.keys(headers).length > 0 && !!userObject;
-  const shouldCache = !skipCache && !(userIdQuery && user) && !hasUserScopedHeaders;
+  /** Free-tier lists are policy-derived and user-scoped; bypass the shared catalog cache. */
+  const shouldCache =
+    !surveilFree && !skipCache && !(userIdQuery && user) && !hasUserScopedHeaders;
   const cacheKey = shouldCache ? modelsCacheKey(baseURL ?? '', apiKey) : '';
   const modelsCache = shouldCache ? standardCache(CacheKeys.MODEL_QUERIES) : null;
   if (modelsCache && cacheKey) {
@@ -377,7 +391,9 @@ export async function fetchModels({
      *  omit architecture metadata or expose their own catalog semantics. */
     const catalog = Array.isArray(input?.data) ? (input.data as OpenRouterCatalogEntry[]) : [];
     const visibleCatalog = isOpenRouterBaseURL(baseURL)
-      ? sortOpenRouterCatalog(catalog.filter(isTextChatCatalogModel))
+      ? surveilFree
+        ? selectFreeTierModels(catalog, freeTierPolicy)
+        : sortOpenRouterCatalog(catalog.filter(isTextChatCatalogModel))
       : catalog;
     models = visibleCatalog.map((item) => item.id).filter((id): id is string => !!id);
   } catch (error) {

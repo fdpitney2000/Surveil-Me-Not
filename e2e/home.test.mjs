@@ -246,7 +246,7 @@ test('Why, What, and How show one sentence each and expand independently by mous
     await reachHome(page);
     const expected = {
       why: 'Without a change, surveillance capitalism will continue to railroad the human experience as “raw material for the hidden commercial practices of extraction, prediction, and sales.”1',
-      what: 'A privacy-first AI platform (think ChatGPT-interface but with more models to choose from) which democratizes enterprise-grade privacy, giving individual users a level of control previously only available to organizations managing their own AI infrastructure.',
+      what: 'A privacy-first AI platform borrowed directly from the big-business playbook. Oddly, this is the world we live in, where individual humans need signifcant platform-level upgrades just enjoy a level or privacy comparable to what any large corporations has.',
       how: 'Enterprise-grade privacy for AI is well established with platforms like LibreChat, which is trusted by thousands of organizations worldwide including Shopify, Daimler Truck and Boston University.',
     };
     for (const [id, sentence] of Object.entries(expected)) {

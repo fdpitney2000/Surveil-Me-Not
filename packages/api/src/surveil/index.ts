@@ -6,6 +6,8 @@ export {
   tierForEndpoint,
   openRouterKeyName,
   openRouterKeyPrefix,
+  freeOpenRouterKeyName,
+  freeOpenRouterKeyPrefix,
   isOpenRouterKeyForUser,
   GUARDRAIL_NAMES,
 } from './config';
@@ -32,6 +34,24 @@ export {
   ZDR_FIELDS,
 } from './openrouter/guardrails';
 export { provisionUserKey, deprovisionUserKeys, setUserKeysDisabled } from './provision';
+export {
+  FREE_TIER_GUARDRAIL_NAME,
+  assertFreeTierAvailable,
+  deleteFreeTierKeys,
+  ensureFreeTierKey,
+  fetchFreeTierUsage,
+  isFreeTierKeyName,
+  isStoredFreeKey,
+  resetFreeTierCaches,
+} from './free-tier';
+export {
+  DEFAULT_FREE_MODEL_POLICY,
+  DEFAULT_FREE_TIER_PINNED_MODEL,
+  isEligibleFreeTierModel,
+  selectFreeTierModelIds,
+  selectFreeTierModels,
+} from './free-models';
+export type { FreeModelPolicy } from './free-models';
 export { provisionUserOnRegistration } from './registration';
 export type { SurveilKeyStore, ProvisionResult, ProvisionedKey } from './provision';
 export { deleteUserSurveilKeys } from './deletion';

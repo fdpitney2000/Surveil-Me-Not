@@ -77,25 +77,36 @@ npm run surveil:openrouter-bootstrap
 npm run surveil:openrouter-check-key
 ```
 
-### Shared free-tier key
+### Subsidized free tier
 
-Signed-up users without a subscription have no per-user OpenRouter key. Create the shared
-`surveil:free` key once; it is restricted by a free-model-only guardrail and used only as a
-server-side fallback:
+Signed-up users without a subscription get a per-user OpenRouter key on first use (or at
+registration). The key is named `surveil:free:{userId}`, has a **$2/month** limit, resets at
+midnight UTC on the first of the calendar month, and is assigned to the shared
+`surveil:free` guardrail. No shared key is stored in the environment.
 
+The guardrail's allowlist is derived from the current OpenRouter catalog using these rules:
+
+- text-output chat models only;
+- tool calling supported;
+- output price at or below **$1 per million tokens** (the pinned model is exempt if
+  OpenRouter later raises its list price; free and zero-priced entries are still excluded);
+- released within the last **183 days**;
+- no `:free`, `:batch`, `openrouter/*`, or `~` router entries;
+- at most **10** models, with DeepSeek V4.1 Flash pinned first and the rest sorted by
+  release date descending.
+
+Refresh the allowlist without touching any user key after OpenRouter changes its catalog:
+
+```sh
+npm run surveil:openrouter-free-sync
 ```
-npm run surveil:openrouter-free-key
-```
 
-The command writes `SURVEIL_FREE_OPENROUTER_KEY` to `.env` without printing it. With that
-set, free users get the full OpenRouter catalog, paid models stay locked in the picker, and
-free models remain callable. Paid `invoice.paid` provisioning overwrites the fallback with
-the customer's managed key.
+The global free-tier ceiling is **$10/month**, enforced as a circuit breaker that sums
+`usage_monthly` across `surveil:free:*` keys before a free chat starts. Each key's own $2
+limit is what prevents individual overages; there is no per-request accounting.
 
-The free catalog is only advertised in **Max Model Selection**. Commercial Privacy and
-Enterprise Vault hide `:free` models, plus the older free IDs without that suffix, because
-those models commonly retain prompts for provider training. Their fallback and title models
-are paid so a title request cannot leak prompt text to a data-training endpoint.
+The model picker advertises this catalog for unsubscribed users across the Surveil tiers.
+Paid `invoice.paid` provisioning replaces the free key; free-key cleanup is best effort.
 
 OpenRouter's catalog also contains image, audio, and video generators. The model fetch filters
 those to `architecture.output_modalities = ['text']`, so only text-output chat models reach
@@ -106,16 +117,9 @@ are routing entries, not concrete selectable chat models, and can be unavailable
 key. OpenRouter exposes no quality or popularity score, so the remaining models are ranked by
 context-window size descending, with newer models as the tie-breaker.
 
-The free-key guardrail stores an explicit allowlist, and OpenRouter changes free-model aliases
-over time (new dated canonical slugs, new `:free` entries). Refresh it without rotating the key
-when a newly advertised free model returns “model blocked by guardrail”:
-
-```
-npm run surveil:openrouter-free-sync
-```
-
-The sync includes both the short alias and the dated canonical slug for each free text-chat
-model, excludes audio/image generators, and reattaches the existing `surveil:free` key.
+The guardrail allowlist changes whenever OpenRouter adds or retires a compatible model. The
+sync command above updates the guardrail and assigns every existing `surveil:free:*` key;
+new keys are assigned automatically when they are created.
 
 ## Web search (Tavily)
 
@@ -188,17 +192,16 @@ Set `SURVEIL_STRIPE_WEBHOOK_SOURCE=cli` while forwarding, or `dashboard` to use
 
 ## 6. Subscribe and provision
 
-Registration already provisioned three limit-0 OpenRouter keys (one per tier) when
-`surveil.provisionOnRegistration: true` (set in `librechat.yaml`): the picker fetches the
-live guardrail-filtered catalog with the user's own key, free models (zero price) are
-listed first and selectable, and paid models stay visible but locked until a subscription
-is active. The key limit (0) is the server-side enforcement — a paid call without credits
-fails at OpenRouter even if the UI is bypassed.
+Registration creates a per-user `surveil:free:{userId}` key with a **$2/month** limit and
+assigns it to the `surveil:free` guardrail. The picker shows the policy-filtered paid-model
+catalog (maximum ten, newest-first, DeepSeek V4.1 Flash pinned) and every visible model is
+selectable. The key limit is the server-side enforcement, so a paid call beyond $2 fails at
+OpenRouter even if the UI is bypassed.
 
 1. Register/sign in, open the sidebar credits widget, choose a plan ($50/$100/$200) — this
    creates a Checkout Session.
 2. Pay with a test card (`4242 4242 4242 4242`). The `invoice.paid` webhook starts the period
-   and provisions one OpenRouter key per tier (stored encrypted; users never see them).
+   and provisions one paid OpenRouter key (stored encrypted; users never see it).
 3. Chat on any tier endpoint; the widget decreases after the next reconcile.
 
 Provision/repair or remove keys manually:

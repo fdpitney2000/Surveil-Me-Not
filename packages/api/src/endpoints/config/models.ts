@@ -15,6 +15,8 @@ import { fetchModels as defaultFetchModels } from '~/endpoints/models';
 import { isServedCustomEndpoint } from '~/endpoints/custom/config';
 import { getTokenConfigKey } from '~/endpoints/custom/initialize';
 import { isSurveilTierEndpoint, resolveSurveilConfig } from '~/surveil/config';
+import { isStoredFreeKey } from '~/surveil/free-tier';
+import { DEFAULT_FREE_TIER_PINNED_MODEL } from '~/surveil/free-models';
 import { getAppConfigOptionsFromUser } from '~/app/service';
 
 /**
@@ -108,6 +110,15 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
     }
 
     const modelsConfig: TModelsConfig = {};
+    const surveilConfig = resolveSurveilConfig(
+      appConfig.surveil as Partial<TSurveilConfig> | undefined,
+    );
+    const freeTierPolicy = {
+      maxModels: surveilConfig.freeTierMaxModels,
+      maxOutputPricePerMillionUsd: surveilConfig.freeTierMaxOutputPricePerMillionUsd,
+      maxAgeDays: surveilConfig.freeTierMaxAgeDays,
+      pinnedModel: surveilConfig.freeTierPinnedModel,
+    };
     const azureConfig = appConfig.endpoints?.[EModelEndpoint.azureOpenAI];
     const { modelNames } = azureConfig ?? {};
 
@@ -202,8 +213,7 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
       }
     }
 
-    const sharedFreeKey = process.env.SURVEIL_FREE_OPENROUTER_KEY?.trim();
-    const catalogKey = process.env.OPENROUTER_MANAGEMENT_KEY?.trim() || sharedFreeKey;
+    const catalogKey = process.env.OPENROUTER_MANAGEMENT_KEY?.trim();
     if (catalogKey) {
       for (const entry of userKeyEndpoints) {
         const values = userKeyMap.get(entry.name);
@@ -215,11 +225,11 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
           )
         ) {
           /**
-           * The shared free key is guardrail-filtered to free models, so it cannot enumerate
-           * the paid catalog needed for the greyed-out rows. The management key is server-side
-           * and display-only here; it is never handed to the endpoint client.
+           * The key is server-side and display-only here; it is never handed to the
+           * endpoint client. Mark it as a free-tier catalog so the picker applies the
+           * subsidized policy while the real per-user key is provisioned lazily.
            */
-          userKeyMap.set(entry.name, { apiKey: catalogKey });
+          userKeyMap.set(entry.name, { apiKey: catalogKey, surveilFree: true });
         }
       }
     }
@@ -237,7 +247,9 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
       // endpoints that happen to share the same baseURL+apiKey but configure
       // different (potentially user-bound) headers don't reuse each other's
       // fetched model list within the same request.
-      const uniqueKey = `${BASE_URL}__${API_KEY}__${headersFingerprint(endpointHeaders)}`;
+      const tier = surveilConfig.tiers.find((candidate) => candidate.endpoint === name);
+      const freeCatalog = !!tier && isStoredFreeKey(userKeyMap.get(name));
+      const uniqueKey = `${BASE_URL}__${API_KEY}__${headersFingerprint(endpointHeaders)}__free=${freeCatalog}`;
 
       if (models?.fetch && !apiKeyIsUserProvided && !baseURLIsUserProvided) {
         if (!fetchPromisesMap[uniqueKey]) {
@@ -257,6 +269,8 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
             direct: endpoint.directEndpoint,
             userIdQuery: models.userIdQuery,
             tokenKey,
+            surveilFree: freeCatalog,
+            freeTierPolicy,
           });
         }
         uniqueKeyToEndpointsMap[uniqueKey] = uniqueKeyToEndpointsMap[uniqueKey] || [];
@@ -302,6 +316,8 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
                 skipCache: true,
                 /** Fetched with the user's key/URL — always user-scoped */
                 tokenKey: getTokenConfigKey(endpoint, name, req.user?.id ?? '', tenantId),
+                surveilFree: freeCatalog,
+                freeTierPolicy,
               });
             })();
           uniqueKeyToEndpointsMap[userFetchKey] = uniqueKeyToEndpointsMap[userFetchKey] || [];
@@ -334,21 +350,26 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
         const defaults = (endpoint.models?.default ?? []).map((m) =>
           typeof m === 'string' ? m : m.name,
         );
-        const tier = resolveSurveilConfig(
-          appConfig.surveil as Partial<TSurveilConfig> | undefined,
-        ).tiers.find((candidate) => candidate.endpoint === name);
+        const tier = surveilConfig.tiers.find((candidate) => candidate.endpoint === name);
+        const freeCatalog = !!tier && isStoredFreeKey(userKeyMap.get(name));
         /**
-         * Free OpenRouter models commonly retain prompts for provider training. Only the
-         * lowest tier advertises them; higher tiers keep the paid catalog visible so it can
-         * be greyed out, but never offer a free model that bypasses the privacy promise.
+         * Free variants are never advertised in Surveil tier pickers. The subsidized
+         * free tier uses the policy-filtered paid catalog; paid tiers keep the paid
+         * catalog visible and never offer a model that bypasses the privacy promise.
          */
         const visibleDefaults =
-          tier && tier.tier > 1 ? defaults.filter((model) => !isSurveilFreeModel(model)) : defaults;
+          tier != null ? defaults.filter((model) => !isSurveilFreeModel(model)) : defaults;
         const visibleModels =
-          tier && tier.tier > 1
+          tier != null
             ? (modelData ?? []).filter((model) => !isSurveilFreeModel(model))
             : modelData;
-        modelsConfig[name] = !visibleModels?.length ? visibleDefaults : visibleModels;
+        modelsConfig[name] = freeCatalog
+          ? visibleModels.length > 0
+            ? visibleModels
+            : [surveilConfig.freeTierPinnedModel || DEFAULT_FREE_TIER_PINNED_MODEL]
+          : !visibleModels?.length
+            ? visibleDefaults
+            : visibleModels;
       }
 
       /** A shared fetch caches token config under one endpoint's tokenKey;

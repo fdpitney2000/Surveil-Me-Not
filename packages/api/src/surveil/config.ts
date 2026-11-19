@@ -61,6 +61,29 @@ export function resolveSurveilConfig(raw?: Partial<TSurveilConfig>): ResolvedSur
   const openrouterFeePct = envNumber('OPENROUTER_FEE_PCT');
   if (openrouterFeePct !== undefined) overrides.openrouterFeePct = openrouterFeePct;
 
+  const freeTierEnabled = envBoolean('SURVEIL_FREE_TIER');
+  if (freeTierEnabled !== undefined) overrides.freeTierEnabled = freeTierEnabled;
+
+  const freeTierMonthlyUsd = envNumber('SURVEIL_FREE_MONTHLY_USD');
+  if (freeTierMonthlyUsd !== undefined) overrides.freeTierMonthlyUsd = freeTierMonthlyUsd;
+
+  const freeTierGlobalUsd = envNumber('SURVEIL_FREE_GLOBAL_USD');
+  if (freeTierGlobalUsd !== undefined) overrides.freeTierGlobalUsd = freeTierGlobalUsd;
+
+  const freeTierMaxModels = envNumber('SURVEIL_FREE_MAX_MODELS');
+  if (freeTierMaxModels !== undefined) overrides.freeTierMaxModels = freeTierMaxModels;
+
+  const freeTierMaxOutputPrice = envNumber('SURVEIL_FREE_MAX_OUTPUT_PRICE_PER_MILLION_USD');
+  if (freeTierMaxOutputPrice !== undefined) {
+    overrides.freeTierMaxOutputPricePerMillionUsd = freeTierMaxOutputPrice;
+  }
+
+  const freeTierMaxAgeDays = envNumber('SURVEIL_FREE_MAX_AGE_DAYS');
+  if (freeTierMaxAgeDays !== undefined) overrides.freeTierMaxAgeDays = freeTierMaxAgeDays;
+
+  const freeTierPinnedModel = process.env.SURVEIL_FREE_PINNED_MODEL?.trim();
+  if (freeTierPinnedModel) overrides.freeTierPinnedModel = freeTierPinnedModel;
+
   return { ...base, ...overrides, tiers: base.tiers };
 }
 
@@ -96,8 +119,19 @@ export function openRouterKeyPrefix(userId: string): string {
   return `surveil:${userId}`;
 }
 
-/** True for the exact user key or any legacy per-tier key. */
+/** The subsidized free-tier key name. */
+export function freeOpenRouterKeyName(userId: string): string {
+  return `surveil:free:${userId}`;
+}
+
+/** The prefix used to find a user's free-tier keys. */
+export function freeOpenRouterKeyPrefix(userId: string): string {
+  return `surveil:free:${userId}`;
+}
+
+/** True for the exact user key, legacy per-tier keys, or the user's free-tier key. */
 export function isOpenRouterKeyForUser(name: string, userId: string): boolean {
   const prefix = openRouterKeyPrefix(userId);
-  return name === prefix || name.startsWith(`${prefix}:`);
+  const freePrefix = freeOpenRouterKeyPrefix(userId);
+  return name === prefix || name.startsWith(`${prefix}:`) || name === freePrefix;
 }

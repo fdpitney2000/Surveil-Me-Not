@@ -1,48 +1,61 @@
-/** Shared free-model catalog rules for the OpenRouter free-tier key scripts. */
+/** Free-tier catalog policy shared by the bootstrap scripts. Mirrors the server policy. */
 
-/** The chat selector should only offer models that produce text. */
+export const FREE_TIER_DEFAULTS = {
+  maxModels: 10,
+  maxOutputPricePerMillionUsd: 1,
+  maxAgeDays: 183,
+  pinnedModel: 'deepseek/deepseek-v4.1-flash',
+};
+
 export function isTextChatModel(model) {
-  // `openrouter/*` entries are meta-routers, not concrete chat models.
-  if (typeof model?.id === 'string' && model.id.startsWith('openrouter/')) return false;
-
+  if (
+    typeof model?.id === 'string' &&
+    (model.id.startsWith('openrouter/') || model.id.startsWith('~'))
+  ) {
+    return false;
+  }
   const outputModalities = model?.architecture?.output_modalities;
   if (Array.isArray(outputModalities) && outputModalities.length > 0) {
     return outputModalities.length === 1 && outputModalities[0] === 'text';
   }
-
   const modality = model?.architecture?.modality;
   if (typeof modality === 'string' && modality.includes('->')) {
     const outputs = modality.split('->').pop()?.split('+') ?? [];
     return outputs.length === 1 && outputs[0] === 'text';
   }
-
-  return !/(?:^|[/:_-])(embedding|embed|rerank|moderation|tts|whisper|image|video|audio)(?:$|[/:_-])/i.test(
-    model?.id ?? '',
-  );
+  return true;
 }
 
-export function isFreeModel(model) {
-  if (typeof model?.id === 'string' && model.id.endsWith(':free')) return true;
-  return model?.pricing?.prompt === '0' && model?.pricing?.completion === '0';
+function pricePerMillion(raw) {
+  if (raw == null || String(raw).trim() === '') return undefined;
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 ? value * 1_000_000 : undefined;
 }
 
-/**
- * OpenRouter's guardrail needs both the catalog alias and the dated canonical
- * slug; older guardrails were built with canonical slugs while requests use
- * the short alias. Include both so additions do not silently become blocked.
- */
-export function freeModelAllowedIds(models) {
-  const ids = new Set();
-  for (const model of models) {
-    if (!isFreeModel(model) || !isTextChatModel(model)) continue;
-    ids.add(model.id);
-    if (
-      model.id.endsWith(':free') &&
-      typeof model.canonical_slug === 'string' &&
-      model.canonical_slug.length > 0
-    ) {
-      ids.add(`${model.canonical_slug}:free`);
-    }
+export function isEligibleFreeModel(model, policy = FREE_TIER_DEFAULTS, now = new Date()) {
+  const id = model?.id?.trim();
+  if (!id || id.endsWith(':free') || id.endsWith(':batch')) return false;
+  if (!isTextChatModel(model)) return false;
+  if (!Array.isArray(model.supported_parameters) || !model.supported_parameters.includes('tools')) {
+    return false;
   }
-  return [...ids].sort();
+  if (!Number.isFinite(model.created)) return false;
+  const ageMs = now.getTime() - Number(model.created) * 1000;
+  if (ageMs < 0 || ageMs > policy.maxAgeDays * 24 * 60 * 60 * 1000) return false;
+  const outputPrice = pricePerMillion(model.pricing?.completion);
+  if (outputPrice == null || outputPrice <= 0) return false;
+  if (id !== policy.pinnedModel && outputPrice > policy.maxOutputPricePerMillionUsd) return false;
+  return true;
+}
+
+/** Return the eligible ids, pinned first, then newest-first, capped at maxModels. */
+export function freeTierAllowedIds(models, policy = FREE_TIER_DEFAULTS, now = new Date()) {
+  const eligible = models
+    .filter((model) => isEligibleFreeModel(model, policy, now))
+    .sort((a, b) => (b.created ?? 0) - (a.created ?? 0));
+  const pinned = eligible.find((model) => model.id === policy.pinnedModel);
+  const ordered = pinned
+    ? [pinned, ...eligible.filter((model) => model.id !== policy.pinnedModel)]
+    : eligible;
+  return ordered.slice(0, policy.maxModels).map((model) => model.id);
 }

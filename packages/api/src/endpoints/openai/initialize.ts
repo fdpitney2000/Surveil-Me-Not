@@ -14,7 +14,13 @@ import {
   getAzureCredentials,
 } from '~/utils';
 import { resolveModelTransportTimeouts } from '~/agents/config';
-import { isSurveilTierEndpoint } from '~/surveil/config';
+import { isSurveilTierEndpoint, resolveSurveilConfig } from '~/surveil/config';
+import {
+  assertFreeTierAvailable,
+  ensureFreeTierKey,
+  isStoredFreeKey,
+} from '~/surveil/free-tier';
+import { createOpenRouterClientFromEnv } from '~/surveil/openrouter/client';
 import { getOpenAIEndpointParameters } from './parameters';
 import { resolveEndpointRuntime } from '~/types';
 import { validateEndpointURL } from '~/auth';
@@ -80,7 +86,7 @@ export async function initializeOpenAI(
   const needsUserKey = userProvidesKey && !mappedAzureConfig;
   const needsUserURL = userProvidesURL && !mappedAzureConfig?.baseURL;
 
-  let userValues: UserKeyValues | null = null;
+  let userValues: (UserKeyValues & { surveilFree?: boolean }) | null = null;
   if (expiresAt && (needsUserKey || needsUserURL)) {
     checkUserKeyExpiry(expiresAt, endpoint);
   }
@@ -95,7 +101,7 @@ export async function initializeOpenAI(
       ) {
         throw error;
       }
-      /** No stored key is the normal free-tier state; the shared fallback below handles it. */
+      /** No stored key is the normal first-request free-tier state. */
       userValues = null;
     }
   }
@@ -105,19 +111,38 @@ export async function initializeOpenAI(
     : credentials[endpoint as keyof typeof credentials];
   /**
    * Surveil tier endpoints use a user-provided key slot. A signed-up user without a
-   * subscription has no managed key, so use the shared free-model key. The key is
-   * guardrail-restricted to free models and never leaves the server.
+   * subscription has no managed key, so provision a per-user $2/month key assigned to the
+   * free guardrail. The key never leaves the server.
    *
    * The Agents controller resolves the provider as `openai`/`custom` and keeps the
    * public tier name on the request body, so check both places.
    */
+  const surveilConfig = resolveSurveilConfig(
+    appConfig?.surveil as Partial<TSurveilConfig> | undefined,
+  );
   const tierEndpoint = [endpoint, requestBody?.endpoint].find(
     (candidate): candidate is string =>
       typeof candidate === 'string' &&
       isSurveilTierEndpoint(appConfig?.surveil as Partial<TSurveilConfig> | undefined, candidate),
   );
-  if (!apiKey && tierEndpoint) {
-    apiKey = process.env.SURVEIL_FREE_OPENROUTER_KEY?.trim();
+  if (!apiKey && tierEndpoint && user?.id) {
+    const client = createOpenRouterClientFromEnv();
+    if (client) {
+      const free = await ensureFreeTierKey({
+        client,
+        db: db as unknown as import('~/surveil/provision').SurveilKeyStore,
+        userId: user.id,
+        config: surveilConfig,
+      });
+      userValues = { apiKey: free.apiKey, surveilFree: true };
+      apiKey = free.apiKey;
+    }
+  }
+  if (tierEndpoint && isStoredFreeKey(userValues)) {
+    const client = createOpenRouterClientFromEnv();
+    if (client) {
+      await assertFreeTierAvailable({ client, config: surveilConfig });
+    }
   }
   const baseURL = userProvidesURL ? userValues?.baseURL : configuredBaseURL;
 

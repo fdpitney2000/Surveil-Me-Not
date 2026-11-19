@@ -55,8 +55,13 @@ export interface OpenRouterModelPricing {
   canonical_slug: string;
   name: string;
   context_length: number | null;
+  created?: number;
   pricing: Record<string, string>;
   supported_parameters?: string[];
+  architecture?: {
+    modality?: string;
+    output_modalities?: string[];
+  };
 }
 
 export interface OpenRouterZdrEndpoint {

@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import debounce from 'lodash/debounce';
 import { useRecoilState } from 'recoil';
-import { Constants, LocalStorageKeys } from 'librechat-data-provider';
+import { Constants, LocalStorageKeys, Tools } from 'librechat-data-provider';
 import type { VerifyToolAuthResponse } from 'librechat-data-provider';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { useVerifyAgentToolAuth, useGetStartupConfig } from '~/data-provider';
@@ -56,10 +56,15 @@ export function useToolToggle({
   const toolKey = useMemo(() => _toolKey, [_toolKey]);
   const storageKey = useMemo(() => `${localStorageKey}${key}`, [localStorageKey, key]);
 
-  // The actual current value comes from ephemeralAgent
+  // The actual current value comes from ephemeralAgent. Web search is on by default
+  // whenever the deployment exposes it; an explicit stored/toggled false wins.
+  const defaultWebSearch = useMemo(
+    () => _toolKey === Tools.web_search && startupConfig?.interface?.webSearch === true,
+    [_toolKey, startupConfig?.interface?.webSearch],
+  );
   const toolValue = useMemo(() => {
-    return ephemeralAgent?.[toolKey] ?? false;
-  }, [ephemeralAgent, toolKey]);
+    return ephemeralAgent?.[toolKey] ?? (defaultWebSearch ? true : false);
+  }, [ephemeralAgent, toolKey, defaultWebSearch]);
 
   const isToolEnabled = useMemo(() => {
     // For backward compatibility, treat truthy string values as enabled

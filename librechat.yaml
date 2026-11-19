@@ -29,8 +29,12 @@ webSearch:
 surveil:
   enabled: true
   # Beta: paid subscribers get a single provisioned key after invoice.paid. Free users
-  # use the shared free-model path, not per-user keys.
+  # get a per-user $2/month key on first use (or at registration), assigned to the
+  # `surveil:free` guardrail. The free tier resets at the calendar month.
   provisionOnRegistration: false
+  freeTierEnabled: true
+  freeTierMonthlyUsd: 2
+  freeTierGlobalUsd: 10
   # The three tier definitions. Defaults exist in code; declared here for clarity.
   tiers:
     - tier: 1
@@ -51,14 +55,14 @@ endpoints:
       baseURL: 'https://openrouter.ai/api/v1'
       description: 'Full OpenRouter catalog. No privacy filtering on requests.'
       models:
-        # Fallback only: the catalog is fetched with the management key. The free default
-        # keeps an unsubscribed user able to chat if the catalog fetch ever fails.
+        # Fallback only: the catalog is fetched with the management key. The pinned
+        # subsidized model keeps an unsubscribed user able to chat if the fetch fails.
         default:
-          - 'google/gemma-4-31b-it:free'
+          - 'deepseek/deepseek-v4.1-flash'
         fetch: true
       titleConvo: true
-      # Free model so title generation works for unsubscribed (limit-0) users.
-      titleModel: 'google/gemma-4-31b-it:free'
+      # Pinned subsidized model so title generation also works for free-tier users.
+      titleModel: 'deepseek/deepseek-v4.1-flash'
       modelDisplayLabel: 'Max Model Selection'
 
     - name: 'Commercial Privacy'

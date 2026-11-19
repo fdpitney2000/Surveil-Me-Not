@@ -28,23 +28,20 @@ export interface ProvisionResult {
   key: ProvisionedKey | null;
 }
 
-async function hasStoredKey(db: SurveilKeyStore, userId: string, name: string): Promise<boolean> {
-  try {
-    const value = await db.getUserKey({ userId, name });
-    return typeof value === 'string' && value.length > 0;
-  } catch {
-    return false;
-  }
-}
-
-/** True when every tier endpoint has a stored copy of the user's key. */
+/** True when every tier endpoint has a stored copy of the user's paid key. */
 async function hasStoredKeyForAllEndpoints(
   db: SurveilKeyStore,
   userId: string,
   config: ResolvedSurveilConfig,
 ): Promise<boolean> {
   for (const tier of config.tiers) {
-    if (!(await hasStoredKey(db, userId, tier.endpoint))) return false;
+    try {
+      const raw = await db.getUserKey({ userId, name: tier.endpoint });
+      const parsed = JSON.parse(raw) as { apiKey?: string; surveilFree?: boolean };
+      if (!parsed.apiKey || parsed.surveilFree === true) return false;
+    } catch {
+      return false;
+    }
   }
   return true;
 }
@@ -104,6 +101,16 @@ export async function provisionUserKey(options: {
   }
 
   if (!key) return { userId, key: null };
+
+  /* A paid key supersedes the subsidized free key. Remove it even when the paid key was
+   * reused, so a subscribing user cannot keep both and accidentally hit the free-tier cap. */
+  for (const old of mine.filter((entry) => entry.name.startsWith('surveil:free:'))) {
+    try {
+      await client.deleteKey(old.hash);
+    } catch {
+      /* Best-effort cleanup; the paid key is already the active credential. */
+    }
+  }
 
   if (created && plaintext) {
     const value = JSON.stringify({ apiKey: plaintext });

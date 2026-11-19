@@ -49,8 +49,11 @@ export function SurveilModelAccessProvider({ children }: { children: React.React
       isSurveilEndpoint,
       hasActiveSubscription,
       isFreeModel,
-      isLocked: (endpointValue, modelId) =>
-        isSurveilEndpoint(endpointValue) && !hasActiveSubscription && !isFreeModel(modelId),
+      /**
+       * The server filters the subsidized tier to its eligible model set, so every row it
+       * returns is selectable. Do not re-lock those paid-but-cheap models client-side.
+       */
+      isLocked: () => false,
       sortForEndpoint: (endpointValue, modelIds) =>
         isSurveilEndpoint(endpointValue) ? sortSurveilModelsFreeFirst(modelIds, models) : modelIds,
     };

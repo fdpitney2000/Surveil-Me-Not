@@ -1,47 +1,46 @@
 #!/usr/bin/env node
 /**
- * Refresh the shared `surveil:free` guardrail from the current OpenRouter catalog
- * without rotating the free key. Run after OpenRouter adds or renames free models.
+ * Refresh the `surveil:free` guardrail from the current OpenRouter catalog and assign
+ * every per-user free-tier key to it.
  *
  * Usage: node scripts/surveil/openrouter-free-sync.mjs
  */
 import { openRouterClient, api } from './lib/runtime.mjs';
-import { freeModelAllowedIds } from './lib/free-model-catalog.mjs';
+import { freeTierAllowedIds } from './lib/free-model-catalog.mjs';
 
 const FREE_GUARDRAIL = 'surveil:free';
-const FREE_KEY_NAME = 'surveil:free';
-
 const client = openRouterClient(api());
+
 const models = await client.listModels();
-const allowedModels = freeModelAllowedIds(models);
+const allowedModels = freeTierAllowedIds(models);
 if (allowedModels.length === 0) {
-  console.error('No free text-chat OpenRouter models found; refusing to empty the guardrail.');
+  console.error('No eligible free-tier OpenRouter models found; refusing to empty the guardrail.');
   process.exit(1);
 }
 
 const guardrails = await client.listGuardrails();
 const existing = guardrails.find((entry) => entry.name === FREE_GUARDRAIL);
-if (!existing) {
-  console.error(`Guardrail ${FREE_GUARDRAIL} does not exist; run surveil:openrouter-free-key first.`);
-  process.exit(1);
-}
-
-const guardrail = await client.updateGuardrail(existing.id, {
+const body = {
   name: FREE_GUARDRAIL,
-  limit_usd: existing.limit_usd ?? 1,
-  reset_interval: existing.reset_interval ?? 'monthly',
+  /** The per-key $2 limit is authoritative; no second guardrail cap. */
+  limit_usd: null,
+  reset_interval: null,
   allowed_models: allowedModels,
-});
+};
+const guardrail = existing
+  ? await client.updateGuardrail(existing.id, body)
+  : await client.createGuardrail(body);
 
 const keys = await client.listAllKeys();
-const key = keys.find((entry) => entry.name === FREE_KEY_NAME);
-if (!key) {
-  console.error(`Key ${FREE_KEY_NAME} does not exist; run surveil:openrouter-free-key first.`);
-  process.exit(1);
+const freeKeys = keys.filter((entry) => entry.name.startsWith('surveil:free:'));
+if (freeKeys.length > 0) {
+  await client.assignKeysToGuardrail(
+    guardrail.id,
+    freeKeys.map((entry) => entry.hash),
+  );
 }
 
-await client.assignKeysToGuardrail(guardrail.id, [key.hash]);
 console.log(
-  `Synced ${FREE_GUARDRAIL}: ${allowedModels.length} allowed ids across the current free text-chat catalog.`,
+  `Synced ${FREE_GUARDRAIL}: ${allowedModels.length} eligible models; ${freeKeys.length} free keys assigned.`,
 );
-console.log(`  guardrail=${guardrail.id} key=${key.hash.slice(0, 8)}…`);
+console.log(`  guardrail=${guardrail.id}`);

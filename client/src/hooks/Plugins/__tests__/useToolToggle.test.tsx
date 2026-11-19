@@ -19,7 +19,9 @@ import { useToolToggle } from '../useToolToggle';
  */
 
 // Mutable startup config so tests can vary `interface.defaultPinnedTools`
-let mockStartupConfig: { interface?: { defaultPinnedTools?: string[] } } | undefined;
+let mockStartupConfig:
+  | { interface?: { defaultPinnedTools?: string[]; webSearch?: boolean } }
+  | undefined;
 
 // Mock data-provider auth query + startup config
 jest.mock('~/data-provider', () => ({
@@ -46,6 +48,45 @@ describe('useToolToggle', () => {
     jest.clearAllMocks();
     localStorage.clear();
     mockStartupConfig = undefined;
+  });
+
+  // ─── Defaults ───────────────────────────────────────────────────────
+
+  describe('web search default', () => {
+    it('is on when interface.webSearch is enabled and the user has not toggled it', () => {
+      mockStartupConfig = { interface: { webSearch: true } };
+      const { result } = renderHook(
+        () =>
+          useToolToggle({
+            conversationId: 'convo-web',
+            toolKey: Tools.web_search,
+            localStorageKey: LocalStorageKeys.LAST_WEB_SEARCH_TOGGLE_,
+            isAuthenticated: true,
+          }),
+        { wrapper: Wrapper },
+      );
+
+      expect(result.current.isToolEnabled).toBe(true);
+    });
+
+    it('respects an explicit user toggle-off', () => {
+      mockStartupConfig = { interface: { webSearch: true } };
+      const { result } = renderHook(
+        () =>
+          useToolToggle({
+            conversationId: 'convo-web-off',
+            toolKey: Tools.web_search,
+            localStorageKey: LocalStorageKeys.LAST_WEB_SEARCH_TOGGLE_,
+            isAuthenticated: true,
+          }),
+        { wrapper: Wrapper },
+      );
+
+      act(() => {
+        result.current.handleChange({ value: false });
+      });
+      expect(result.current.isToolEnabled).toBe(false);
+    });
   });
 
   // ─── Dual-Write Behavior ───────────────────────────────────────────
