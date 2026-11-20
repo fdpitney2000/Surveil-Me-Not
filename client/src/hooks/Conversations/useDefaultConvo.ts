@@ -67,6 +67,12 @@ const useDefaultConvo = () => {
         preferredModel,
       });
 
+      /** Web search is on for new conversations unless the preset/previous state
+       *  explicitly turned it off. The Parameters side panel reflects this value. */
+      if (startupConfig?.interface?.webSearch === true && defaultConvo.web_search == null) {
+        defaultConvo.web_search = true;
+      }
+
       if (!cleanOutput) {
         return defaultConvo;
       }

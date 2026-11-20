@@ -259,6 +259,15 @@ const useNewConvo = (index = 0) => {
             preferredModel,
           });
 
+          /** Match the Parameters panel's default: native web search is on for new
+           *  conversations unless a preset or previous setup explicitly disabled it. */
+          if (
+            startupConfig?.interface?.webSearch === true &&
+            conversation.web_search == null
+          ) {
+            conversation.web_search = true;
+          }
+
           if (hasExplicitChatProjectId) {
             conversation.chatProjectId = explicitChatProjectId ?? null;
           } else {

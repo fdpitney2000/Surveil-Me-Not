@@ -415,7 +415,7 @@ export const defaultAgentFormValues = {
   description: '',
   instructions: '',
   model: '',
-  model_parameters: {},
+  model_parameters: { web_search: true },
   tools: [],
   tool_options: {},
   provider: {},

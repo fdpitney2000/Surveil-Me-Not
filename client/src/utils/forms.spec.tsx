@@ -11,6 +11,10 @@ describe('getDefaultAgentFormValues', () => {
     expect(getDefaultAgentFormValues('agent-user').stateful_code_environment).toBe('agent-user');
   });
 
+  it('defaults agent web search on', () => {
+    expect(getDefaultAgentFormValues().model_parameters).toEqual({ web_search: true });
+  });
+
   it('uses the semantic success marker for public agent options', () => {
     const option = processAgentOption({
       agent: { id: 'public-agent', name: 'Public agent', isPublic: true } as Agent,
