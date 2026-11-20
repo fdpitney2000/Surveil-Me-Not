@@ -628,19 +628,38 @@ const resetPassword = async (userId, token, password) => {
   const { user, resetToken: passwordResetToken } = outcome;
 
   if (checkEmailConfig()) {
-    await sendEmail({
-      email: user.email,
-      subject: 'Password Reset Successfully',
-      payload: {
-        appName: process.env.APP_TITLE || 'LibreChat',
-        name: user.name || user.username || user.email,
-        year: new Date().getFullYear(),
-      },
-      template: 'passwordReset.handlebars',
-    });
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Password Reset Successfully',
+        payload: {
+          appName: process.env.APP_TITLE || 'LibreChat',
+          name: user.name || user.username || user.email,
+          year: new Date().getFullYear(),
+        },
+        template: 'passwordReset.handlebars',
+      });
+    } catch (error) {
+      /**
+       * The password and token have already been committed. A notification mail failure
+       * must not turn a successful reset into an "invalid token" response, which would
+       * invite the user to retry a consumed link.
+       */
+      logger.warn(
+        '[resetPassword] Password changed, but confirmation email failed:',
+        getSafeErrorMetadata(error),
+      );
+    }
   }
 
-  await deleteTokens(getPasswordResetTokenDeleteQuery(passwordResetToken));
+  try {
+    await deleteTokens(getPasswordResetTokenDeleteQuery(passwordResetToken));
+  } catch (error) {
+    logger.warn(
+      '[resetPassword] Password changed, but reset-token cleanup failed:',
+      getSafeErrorMetadata(error),
+    );
+  }
   logger.info(`[resetPassword] Password reset successful. [User ID: ${userId}]`);
   return { message: 'Password reset was successful' };
 };
