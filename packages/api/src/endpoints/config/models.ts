@@ -7,7 +7,7 @@ import {
   normalizeEndpointName,
 } from 'librechat-data-provider';
 import type { TModelsConfig, TEndpoint, TSurveilConfig } from 'librechat-data-provider';
-import type { AppConfig } from '@librechat/data-schemas';
+import type { AppConfig, ISurveilSubscription } from '@librechat/data-schemas';
 import type { ServerRequest, GetUserKeyValuesFunction, UserKeyValues } from '~/types';
 import type { FetchModelsParams } from '~/endpoints/models';
 import type { GetAppConfigOptions } from '~/app/service';
@@ -16,6 +16,7 @@ import { isServedCustomEndpoint } from '~/endpoints/custom/config';
 import { getTokenConfigKey } from '~/endpoints/custom/initialize';
 import { isSurveilTierEndpoint, resolveSurveilConfig } from '~/surveil/config';
 import { isStoredFreeKey } from '~/surveil/free-tier';
+import { isSubscriptionUsable } from '~/surveil/reconciler';
 import { DEFAULT_FREE_TIER_PINNED_MODEL } from '~/surveil/free-models';
 import { getAppConfigOptionsFromUser } from '~/app/service';
 
@@ -85,6 +86,10 @@ interface ResolvedEndpoint {
 export interface LoadConfigModelsDeps {
   getAppConfig: (params: GetAppConfigOptions) => Promise<AppConfig>;
   getUserKeyValues: GetUserKeyValuesFunction;
+  /** Optional subscription lookup; when present, free-tier filtering is subscription-based. */
+  getSurveilSubscriptionByUser?: (
+    userId: string,
+  ) => Promise<ISurveilSubscription | null>;
   fetchModels?: (params: FetchModelsParams) => Promise<string[]>;
 }
 
@@ -101,7 +106,12 @@ function isSurveilFreeModel(model: string): boolean {
 }
 
 export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
-  const { getAppConfig, getUserKeyValues, fetchModels = defaultFetchModels } = deps;
+  const {
+    getAppConfig,
+    getUserKeyValues,
+    getSurveilSubscriptionByUser,
+    fetchModels = defaultFetchModels,
+  } = deps;
 
   return async function loadConfigModels(req: ServerRequest): Promise<TModelsConfig> {
     const appConfig = req.config ?? (await getAppConfig(getAppConfigOptionsFromUser(req.user)));
@@ -113,6 +123,20 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
     const surveilConfig = resolveSurveilConfig(
       appConfig.surveil as Partial<TSurveilConfig> | undefined,
     );
+    let hasPaidAccess = false;
+    const subscriptionKnown = Boolean(req.user?.id && getSurveilSubscriptionByUser);
+    if (subscriptionKnown && getSurveilSubscriptionByUser && req.user?.id) {
+      try {
+        hasPaidAccess = isSubscriptionUsable(
+          await getSurveilSubscriptionByUser(req.user.id),
+          new Date(),
+        );
+      } catch (error) {
+        logger.warn('[loadConfigModels] Failed to load Surveil subscription:', error);
+        /** Fail closed: an unknown subscription must not expose the paid catalog. */
+        hasPaidAccess = false;
+      }
+    }
     const freeTierPolicy = {
       maxModels: surveilConfig.freeTierMaxModels,
       maxOutputPricePerMillionUsd: surveilConfig.freeTierMaxOutputPricePerMillionUsd,
@@ -218,16 +242,16 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
       for (const entry of userKeyEndpoints) {
         const values = userKeyMap.get(entry.name);
         if (
-          !values?.apiKey &&
           isSurveilTierEndpoint(
             appConfig.surveil as Partial<TSurveilConfig> | undefined,
             entry.name,
-          )
+          ) &&
+          (!hasPaidAccess || !values?.apiKey)
         ) {
           /**
-           * The key is server-side and display-only here; it is never handed to the
-           * endpoint client. Mark it as a free-tier catalog so the picker applies the
-           * subsidized policy while the real per-user key is provisioned lazily.
+           * A user without usable paid access is on the subsidized tier even if an old
+           * managed key remains in the encrypted store. Use the server-side management key
+           * for display and mark the catalog free; the stale key is replaced on first chat.
            */
           userKeyMap.set(entry.name, { apiKey: catalogKey, surveilFree: true });
         }
@@ -248,7 +272,8 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
       // different (potentially user-bound) headers don't reuse each other's
       // fetched model list within the same request.
       const tier = surveilConfig.tiers.find((candidate) => candidate.endpoint === name);
-      const freeCatalog = !!tier && isStoredFreeKey(userKeyMap.get(name));
+      const freeCatalog =
+        !!tier && (subscriptionKnown ? !hasPaidAccess : isStoredFreeKey(userKeyMap.get(name)));
       const uniqueKey = `${BASE_URL}__${API_KEY}__${headersFingerprint(endpointHeaders)}__free=${freeCatalog}`;
 
       if (models?.fetch && !apiKeyIsUserProvided && !baseURLIsUserProvided) {
@@ -351,7 +376,9 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
           typeof m === 'string' ? m : m.name,
         );
         const tier = surveilConfig.tiers.find((candidate) => candidate.endpoint === name);
-        const freeCatalog = !!tier && isStoredFreeKey(userKeyMap.get(name));
+        const freeCatalog =
+          !!tier &&
+          (subscriptionKnown ? !hasPaidAccess : isStoredFreeKey(userKeyMap.get(name)));
         /**
          * Free variants are never advertised in Surveil tier pickers. The subsidized
          * free tier uses the policy-filtered paid catalog; paid tiers keep the paid

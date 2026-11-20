@@ -1,7 +1,9 @@
+import type { ISurveilSubscription } from '@librechat/data-schemas';
 import type { OpenRouterClient, OpenRouterGuardrail } from './openrouter/client';
 import type { ResolvedSurveilConfig } from './config';
 import type { SurveilKeyStore } from './provision';
 import { freeOpenRouterKeyName } from './config';
+import { isSubscriptionUsable } from './reconciler';
 import { SurveilError, SurveilErrorCodes } from './errors';
 import { selectFreeTierModelIds } from './free-models';
 
@@ -37,6 +39,33 @@ export function isFreeTierKeyName(name: string): boolean {
 
 export function isStoredFreeKey(value: { surveilFree?: boolean } | null | undefined): boolean {
   return value?.surveilFree === true;
+}
+
+export interface SurveilAccessDb {
+  getSurveilSubscriptionByUser?: (
+    userId: string,
+  ) => Promise<ISurveilSubscription | null>;
+}
+
+/**
+ * A managed key can outlive a canceled subscription. Treat access as paid only when the
+ * subscription is currently usable; otherwise the user is on the subsidized tier even if a
+ * stale key remains in the encrypted store.
+ */
+export async function hasPaidSurveilAccess(
+  db: SurveilAccessDb,
+  userId: string | undefined,
+  now: Date = new Date(),
+): Promise<boolean> {
+  if (!userId || !db.getSurveilSubscriptionByUser) {
+    return false;
+  }
+  try {
+    return isSubscriptionUsable(await db.getSurveilSubscriptionByUser(userId), now);
+  } catch {
+    /** Fail closed: an unknown subscription must not expose the paid catalog. */
+    return false;
+  }
 }
 
 function freePolicy(config: ResolvedSurveilConfig) {

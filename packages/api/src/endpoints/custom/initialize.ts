@@ -28,6 +28,7 @@ import { resolveSurveilConfig } from '~/surveil/config';
 import {
   assertFreeTierAvailable,
   ensureFreeTierKey,
+  hasPaidSurveilAccess,
   isStoredFreeKey,
 } from '~/surveil/free-tier';
 import { createOpenRouterClientFromEnv } from '~/surveil/openrouter/client';
@@ -261,8 +262,19 @@ export async function initializeCustom(
   );
   const isSurveilTier =
     surveil.enabled && surveil.tiers.some((tier) => tier.endpoint === endpoint);
+  const paidAccess = isSurveilTier
+    ? await hasPaidSurveilAccess(
+        db as unknown as import('~/surveil/free-tier').SurveilAccessDb,
+        user?.id,
+      )
+    : true;
 
-  if (isSurveilTier && user?.id && !userValues?.apiKey) {
+  if (
+    isSurveilTier &&
+    user?.id &&
+    !paidAccess &&
+    (!userValues?.apiKey || !isStoredFreeKey(userValues))
+  ) {
     const client = createOpenRouterClientFromEnv();
     if (!client) {
       throw new Error('Surveil free tier is not configured.');
@@ -276,7 +288,7 @@ export async function initializeCustom(
     userValues = { apiKey: free.apiKey, surveilFree: true };
   }
 
-  if (isSurveilTier && isStoredFreeKey(userValues)) {
+  if (isSurveilTier && !paidAccess && isStoredFreeKey(userValues)) {
     const client = createOpenRouterClientFromEnv();
     if (client) {
       await assertFreeTierAvailable({ client, config: surveil });

@@ -18,6 +18,7 @@ import { isSurveilTierEndpoint, resolveSurveilConfig } from '~/surveil/config';
 import {
   assertFreeTierAvailable,
   ensureFreeTierKey,
+  hasPaidSurveilAccess,
   isStoredFreeKey,
 } from '~/surveil/free-tier';
 import { createOpenRouterClientFromEnv } from '~/surveil/openrouter/client';
@@ -125,7 +126,18 @@ export async function initializeOpenAI(
       typeof candidate === 'string' &&
       isSurveilTierEndpoint(appConfig?.surveil as Partial<TSurveilConfig> | undefined, candidate),
   );
-  if (!apiKey && tierEndpoint && user?.id) {
+  const paidAccess = tierEndpoint
+    ? await hasPaidSurveilAccess(
+        db as unknown as import('~/surveil/free-tier').SurveilAccessDb,
+        user?.id,
+      )
+    : true;
+  if (
+    tierEndpoint &&
+    user?.id &&
+    !paidAccess &&
+    (!userValues?.apiKey || !isStoredFreeKey(userValues))
+  ) {
     const client = createOpenRouterClientFromEnv();
     if (client) {
       const free = await ensureFreeTierKey({
@@ -138,7 +150,7 @@ export async function initializeOpenAI(
       apiKey = free.apiKey;
     }
   }
-  if (tierEndpoint && isStoredFreeKey(userValues)) {
+  if (tierEndpoint && !paidAccess && isStoredFreeKey(userValues)) {
     const client = createOpenRouterClientFromEnv();
     if (client) {
       await assertFreeTierAvailable({ client, config: surveilConfig });

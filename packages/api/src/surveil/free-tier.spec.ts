@@ -2,7 +2,12 @@ import type { OpenRouterApiKey, OpenRouterClient, OpenRouterGuardrail } from './
 import type { SurveilKeyStore } from './provision';
 import { resolveSurveilConfig } from './config';
 import { SurveilErrorCodes } from './errors';
-import { ensureFreeTierKey, fetchFreeTierUsage, resetFreeTierCaches } from './free-tier';
+import {
+  ensureFreeTierKey,
+  fetchFreeTierUsage,
+  hasPaidSurveilAccess,
+  resetFreeTierCaches,
+} from './free-tier';
 
 const NOW = Math.floor(Date.now() / 1000) - 86400;
 const CONFIG = resolveSurveilConfig({ enabled: true, freeTierEnabled: true });
@@ -185,5 +190,19 @@ describe('free-tier key provisioning', () => {
       ],
     });
     await expect(fetchFreeTierUsage(client)).resolves.toBe(3);
+  });
+
+  it('treats a usable subscription as paid and a missing/canceled one as free', async () => {
+    const active = {
+      getSurveilSubscriptionByUser: async () => ({ status: 'active' }) as never,
+    };
+    const missing = { getSurveilSubscriptionByUser: async () => null };
+    const canceled = {
+      getSurveilSubscriptionByUser: async () =>
+        ({ status: 'canceled', renewsAt: new Date(Date.now() - 60_000) }) as never,
+    };
+    await expect(hasPaidSurveilAccess(active, 'user_1')).resolves.toBe(true);
+    await expect(hasPaidSurveilAccess(missing, 'user_1')).resolves.toBe(false);
+    await expect(hasPaidSurveilAccess(canceled, 'user_1')).resolves.toBe(false);
   });
 });

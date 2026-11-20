@@ -40,6 +40,7 @@ export {
   deleteFreeTierKeys,
   ensureFreeTierKey,
   fetchFreeTierUsage,
+  hasPaidSurveilAccess,
   isFreeTierKeyName,
   isStoredFreeKey,
   resetFreeTierCaches,
