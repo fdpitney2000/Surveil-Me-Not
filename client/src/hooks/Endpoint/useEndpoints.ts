@@ -146,10 +146,13 @@ export const useEndpoints = ({
       }
 
       // Base result object with formatted default icon
+      const tier = (startupConfig?.surveil?.tiers ?? []).find((entry) => entry.endpoint === ep);
       const result: Endpoint = {
         value: ep,
-        label: alternateName[ep] || ep,
-        description: getEndpointField(endpointsConfig, ep, 'description') as string | undefined,
+        label: tier?.label || alternateName[ep] || ep,
+        description:
+          tier?.description ||
+          (getEndpointField(endpointsConfig, ep, 'description') as string | undefined),
         hasModels,
         icon: createEndpointIcon(ep, resolveProviderIcon({ endpoint: ep, endpointsConfig })),
       };
@@ -240,6 +243,7 @@ export const useEndpoints = ({
     modelsQuery.data,
     modelsQuery.isSuccess,
     surveilTierEndpoints,
+    startupConfig?.surveil?.tiers,
     showAgentMarketplace,
   ]);
 

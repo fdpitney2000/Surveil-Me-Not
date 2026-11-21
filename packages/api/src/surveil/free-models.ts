@@ -3,6 +3,9 @@ import type { OpenRouterModelPricing } from './openrouter/client';
 /** Stable id pinned to the top of the subsidized free-tier picker. */
 export const DEFAULT_FREE_TIER_PINNED_MODEL = 'deepseek/deepseek-v4.1-flash';
 
+/** Number of paid models exposed as locked previews on higher Surveil tiers. */
+export const FREE_TIER_PREVIEW_MODELS = 8;
+
 export interface FreeModelPolicy {
   /** Maximum number of models exposed in the free-tier picker. */
   maxModels: number;

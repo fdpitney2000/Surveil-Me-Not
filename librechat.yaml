@@ -9,8 +9,18 @@ interface:
   webSearch: true
   runCode: false
   fileSearch: false
-  # MCP is off because no mcpServers are configured; `interface.mcpServers` is an object
-  # (UI policy), not a boolean.
+  # Consumer defaults: keep Parameters (web search on/off) but hide the more
+  # advanced library/agent surfaces.
+  parameters: true
+  bookmarks: false
+  memories: false
+  prompts: false
+  marketplace:
+    use: false
+  mcpServers:
+    use: false
+    create: false
+    share: false
 
 # Tavily is the temporary search provider for beta testing. It is third-party egress:
 # search queries and returned page excerpts leave the deployment. Tier 2/3 should not be
@@ -39,13 +49,16 @@ surveil:
   tiers:
     - tier: 1
       endpoint: 'Max Model Selection'
-      description: 'Full OpenRouter catalog. No privacy filtering on requests.'
+      label: 'Anon'
+      description: 'your identity is protected'
     - tier: 2
       endpoint: 'Commercial Privacy'
-      description: 'Routes only to providers that do not collect or train on your data.'
+      label: 'Anon + No Training'
+      description: 'your data will not be used to improve AI'
     - tier: 3
       endpoint: 'Enterprise Vault'
-      description: 'Zero Data Retention enforced; routes only to ZDR endpoints.'
+      label: 'Anon + No Training + ZDR'
+      description: 'Zero Data Retention for max privacy'
 
 endpoints:
   custom:
@@ -53,7 +66,7 @@ endpoints:
       apiKey: 'user_provided'
       hideUserProvidedKey: true
       baseURL: 'https://openrouter.ai/api/v1'
-      description: 'Full OpenRouter catalog. No privacy filtering on requests.'
+      description: 'your identity is protected'
       models:
         # Fallback only: the catalog is fetched with the management key. The pinned
         # subsidized model keeps an unsubscribed user able to chat if the fetch fails.
@@ -63,13 +76,13 @@ endpoints:
       titleConvo: true
       # Pinned subsidized model so title generation also works for free-tier users.
       titleModel: 'deepseek/deepseek-v4.1-flash'
-      modelDisplayLabel: 'Max Model Selection'
+      modelDisplayLabel: 'Anon'
 
     - name: 'Commercial Privacy'
       apiKey: 'user_provided'
       hideUserProvidedKey: true
       baseURL: 'https://openrouter.ai/api/v1'
-      description: 'Routes only to providers that do not collect or train on your data.'
+      description: 'your data will not be used to improve AI'
       models:
         # Fallback only: the catalog is fetched with the management key. Never fall
         # back to a free model here; higher tiers must not advertise data-training models.
@@ -79,7 +92,7 @@ endpoints:
       titleConvo: true
       # Paid title model: titles must not send prompt text to a data-training endpoint.
       titleModel: 'openai/gpt-4o-mini'
-      modelDisplayLabel: 'Commercial Privacy'
+      modelDisplayLabel: 'Anon + No Training'
       # Server-side guarantee: only providers that do not collect/train on data.
       addParams:
         provider:
@@ -89,7 +102,7 @@ endpoints:
       apiKey: 'user_provided'
       hideUserProvidedKey: true
       baseURL: 'https://openrouter.ai/api/v1'
-      description: 'Zero Data Retention enforced; routes only to ZDR endpoints.'
+      description: 'Zero Data Retention for max privacy'
       models:
         # Fallback only: the catalog is fetched with the management key. Never fall
         # back to a free model here; higher tiers must not advertise data-training models.
@@ -99,7 +112,7 @@ endpoints:
       titleConvo: true
       # Paid title model: titles must not send prompt text to a data-training endpoint.
       titleModel: 'openai/gpt-4o-mini'
-      modelDisplayLabel: 'Enterprise Vault'
+      modelDisplayLabel: 'Anon + No Training + ZDR'
       # Server-side guarantee: Zero Data Retention plus no data collection.
       addParams:
         provider:

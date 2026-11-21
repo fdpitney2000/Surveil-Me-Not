@@ -462,14 +462,23 @@ describe('createLoadConfigModels – Surveil free-tier catalog visibility', () =
     })({ user: { id: 'user-1' }, config } as unknown as ServerRequest),
   });
 
-  it('only exposes the free catalog on Max Model Selection', async () => {
+  it('exposes the free catalog on Max and a locked preview on higher tiers', async () => {
     const { result, fetchModels } = load(null);
     const models = await result;
 
     expect(models['Max Model Selection']).toEqual(['deepseek/deepseek-v4.1-flash']);
-    expect(models['Commercial Privacy']).toEqual([]);
-    expect(models['Enterprise Vault']).toEqual([]);
-    expect(fetchModels).toHaveBeenCalledTimes(1);
+    expect(models['Commercial Privacy']).toEqual(['deepseek/deepseek-v4.1-flash']);
+    expect(models['Enterprise Vault']).toEqual(['deepseek/deepseek-v4.1-flash']);
+    expect(fetchModels).toHaveBeenCalledTimes(2);
+  });
+
+  it('caps each higher-tier preview at eight models', async () => {
+    const catalog = Array.from({ length: 12 }, (_, index) => `provider/model-${index}`);
+    const { result } = load(null, jest.fn().mockResolvedValue(catalog));
+    const models = await result;
+
+    expect(models['Commercial Privacy']).toHaveLength(8);
+    expect(models['Enterprise Vault']).toHaveLength(8);
   });
 
   it('exposes the paid catalog on every tier for an active subscriber', async () => {

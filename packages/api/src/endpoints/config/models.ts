@@ -17,7 +17,7 @@ import { getTokenConfigKey } from '~/endpoints/custom/initialize';
 import { isSurveilTierEndpoint, resolveSurveilConfig } from '~/surveil/config';
 import { isStoredFreeKey } from '~/surveil/free-tier';
 import { isSubscriptionUsable } from '~/surveil/reconciler';
-import { DEFAULT_FREE_TIER_PINNED_MODEL } from '~/surveil/free-models';
+import { DEFAULT_FREE_TIER_PINNED_MODEL, FREE_TIER_PREVIEW_MODELS } from '~/surveil/free-models';
 import { getAppConfigOptionsFromUser } from '~/app/service';
 
 /**
@@ -276,13 +276,6 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
         !!tier &&
         (subscriptionKnown ? !hasPaidAccess : isStoredFreeKey(userKeyMap.get(name)));
       const freeCatalog = freeAccess && tier?.tier === 1;
-      /** Free-tier keys only exist behind Max Model Selection. A subsidized model
-       *  cannot satisfy the higher-tier provider privacy guarantees, so never
-       *  advertise a paid catalog or the free catalog on those tiers. */
-      if (freeAccess && tier?.tier !== 1) {
-        modelsConfig[name] = [];
-        continue;
-      }
       const uniqueKey = `${BASE_URL}__${API_KEY}__${headersFingerprint(endpointHeaders)}__free=${freeCatalog}`;
 
       if (models?.fetch && !apiKeyIsUserProvided && !baseURLIsUserProvided) {
@@ -389,6 +382,7 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
           !!tier &&
           (subscriptionKnown ? !hasPaidAccess : isStoredFreeKey(userKeyMap.get(name)));
         const freeCatalog = freeAccess && tier?.tier === 1;
+        const previewCatalog = freeAccess && tier?.tier !== 1;
         /**
          * Free variants are never advertised in Surveil tier pickers. The subsidized
          * free tier uses the policy-filtered paid catalog; paid tiers keep the paid
@@ -404,9 +398,13 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
           ? visibleModels.length > 0
             ? visibleModels
             : [surveilConfig.freeTierPinnedModel || DEFAULT_FREE_TIER_PINNED_MODEL]
-          : !visibleModels?.length
-            ? visibleDefaults
-            : visibleModels;
+          : previewCatalog
+            ? visibleModels
+                .filter((model) => !model.endsWith(':batch'))
+                .slice(0, FREE_TIER_PREVIEW_MODELS)
+            : !visibleModels?.length
+              ? visibleDefaults
+              : visibleModels;
       }
 
       /** A shared fetch caches token config under one endpoint's tokenKey;

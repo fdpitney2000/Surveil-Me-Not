@@ -41,6 +41,7 @@ export function SurveilModelAccessProvider({ children }: { children: React.React
       return defaultAccess;
     }
     const tierEndpoints = new Set((surveil?.tiers ?? []).map((tier) => tier.endpoint));
+    const freeTierEndpoint = (surveil?.tiers ?? []).find((tier) => tier.tier === 1)?.endpoint;
     const models = pricing?.models;
     const hasActiveSubscription = credits != null && credits.status !== 'none';
     const isSurveilEndpoint = (endpointValue: string) => tierEndpoints.has(endpointValue);
@@ -50,10 +51,13 @@ export function SurveilModelAccessProvider({ children }: { children: React.React
       hasActiveSubscription,
       isFreeModel,
       /**
-       * The server filters the subsidized tier to its eligible model set, so every row it
-       * returns is selectable. Do not re-lock those paid-but-cheap models client-side.
+       * A non-subscriber can use the subsidized catalog on Max Model Selection only.
+       * Higher-tier rows are paid previews: visible, but not selectable.
        */
-      isLocked: () => false,
+      isLocked: (endpointValue: string) =>
+        isSurveilEndpoint(endpointValue) &&
+        !hasActiveSubscription &&
+        endpointValue !== freeTierEndpoint,
       sortForEndpoint: (endpointValue, modelIds) =>
         isSurveilEndpoint(endpointValue) ? sortSurveilModelsFreeFirst(modelIds, models) : modelIds,
     };

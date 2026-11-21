@@ -105,10 +105,11 @@ The global free-tier ceiling is **$10/month**, enforced as a circuit breaker tha
 `usage_monthly` across `surveil:free:*` keys before a free chat starts. Each key's own $2
 limit is what prevents individual overages; there is no per-request accounting.
 
-The model picker advertises this catalog only on **Max Model Selection** for unsubscribed
-users. Commercial Privacy and Enterprise Vault require an active paid subscription; they are
-not populated with the free catalog, and direct chat requests to those tiers are rejected.
-Paid `invoice.paid` provisioning replaces the free key; free-key cleanup is best effort.
+The model picker advertises this catalog on **Max Model Selection** (`Anon`) for
+unsubscribed users. Commercial Privacy (`Anon + No Training`) and Enterprise Vault
+(`Anon + No Training + ZDR`) show a capped eight-model locked preview, but require an active
+paid subscription; direct chat requests to those tiers are rejected. Paid `invoice.paid`
+provisioning replaces the free key; free-key cleanup is best effort.
 
 OpenRouter's catalog also contains image, audio, and video generators. The model fetch filters
 those to `architecture.output_modalities = ['text']`, so only text-output chat models reach
@@ -196,9 +197,10 @@ Set `SURVEIL_STRIPE_WEBHOOK_SOURCE=cli` while forwarding, or `dashboard` to use
 
 Registration creates a per-user `surveil:free:{userId}` key with a **$2/month** limit and
 assigns it to the `surveil:free` guardrail. The picker shows the policy-filtered paid-model
-catalog (maximum ten, newest-first, DeepSeek V4.1 Flash pinned) and every visible model is
-selectable. The key limit is the server-side enforcement, so a paid call beyond $2 fails at
-OpenRouter even if the UI is bypassed.
+catalog on Max Model Selection (maximum ten, newest-first, DeepSeek V4.1 Flash pinned); those
+rows are selectable. Commercial Privacy and Enterprise Vault show a capped eight-model locked
+preview and are not selectable without a subscription. The key limit is the server-side
+enforcement, so a paid call beyond $2 fails at OpenRouter even if the UI is bypassed.
 
 1. Register/sign in, open the sidebar credits widget, choose a plan ($50/$100/$200) — this
    creates a Checkout Session.

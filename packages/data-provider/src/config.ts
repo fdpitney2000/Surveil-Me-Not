@@ -4460,6 +4460,8 @@ export const surveilTierSchema = z
     tier: z.number().int().min(1).max(3),
     /** Custom endpoint name exactly as declared in `endpoints.custom`. */
     endpoint: z.string().min(1),
+    /** Consumer-facing heading for this tier in the model picker. */
+    label: z.string().min(1).optional(),
     /** One-line guarantee shown next to the endpoint in the UI. */
     description: z.string().min(1),
   })
@@ -4525,17 +4527,20 @@ export const surveilConfigSchema = z
       {
         tier: 1,
         endpoint: 'Max Model Selection',
-        description: 'Full OpenRouter catalog. No privacy filtering on requests.',
+        label: 'Anon',
+        description: 'your identity is protected',
       },
       {
         tier: 2,
         endpoint: 'Commercial Privacy',
-        description: 'Routes only to providers that do not collect or train on your data.',
+        label: 'Anon + No Training',
+        description: 'your data will not be used to improve AI',
       },
       {
         tier: 3,
         endpoint: 'Enterprise Vault',
-        description: 'Zero Data Retention enforced; routes only to ZDR endpoints.',
+        label: 'Anon + No Training + ZDR',
+        description: 'Zero Data Retention for max privacy',
       },
     ]),
   })

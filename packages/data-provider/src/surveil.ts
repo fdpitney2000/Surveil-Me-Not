@@ -5,6 +5,8 @@ export type TSurveilPlanKey = '50' | '100' | '200';
 export interface TSurveilStartupTier {
   tier: number;
   endpoint: string;
+  /** Consumer-facing heading; falls back to the endpoint name when absent. */
+  label?: string;
   description: string;
 }
 
