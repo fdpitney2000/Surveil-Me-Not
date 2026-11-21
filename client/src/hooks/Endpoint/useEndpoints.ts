@@ -78,6 +78,12 @@ export const useEndpoints = ({
     () => new Set(startupConfig?.modelSpecs?.addedEndpoints ?? []),
     [startupConfig?.modelSpecs?.addedEndpoints],
   );
+  /** Free-tier subscribers only have models on Max Model Selection. Once the
+   *  catalog is loaded, do not render higher tiers that have no eligible models. */
+  const surveilTierEndpoints = useMemo(
+    () => new Set((startupConfig?.surveil?.tiers ?? []).map((tier) => tier.endpoint)),
+    [startupConfig?.surveil?.tiers],
+  );
 
   const hasAgentAccess = useHasAccess({
     permissionType: PermissionTypes.AGENTS,
@@ -130,6 +136,12 @@ export const useEndpoints = ({
           (modelsQuery.data?.[ep]?.length ?? 0) > 0);
 
       if (ep === EModelEndpoint.agents && !hasModels) {
+        return acc;
+      }
+
+      /** Empty Surveil tiers are not actionable for free-tier users; hide them
+       *  rather than offering an endpoint with no selectable model. */
+      if (modelsQuery.isSuccess && surveilTierEndpoints.has(ep) && !hasModels) {
         return acc;
       }
 
@@ -226,6 +238,8 @@ export const useEndpoints = ({
     endpointsConfig,
     filteredEndpoints,
     modelsQuery.data,
+    modelsQuery.isSuccess,
+    surveilTierEndpoints,
     showAgentMarketplace,
   ]);
 

@@ -105,7 +105,9 @@ The global free-tier ceiling is **$10/month**, enforced as a circuit breaker tha
 `usage_monthly` across `surveil:free:*` keys before a free chat starts. Each key's own $2
 limit is what prevents individual overages; there is no per-request accounting.
 
-The model picker advertises this catalog for unsubscribed users across the Surveil tiers.
+The model picker advertises this catalog only on **Max Model Selection** for unsubscribed
+users. Commercial Privacy and Enterprise Vault require an active paid subscription; they are
+not populated with the free catalog, and direct chat requests to those tiers are rejected.
 Paid `invoice.paid` provisioning replaces the free key; free-key cleanup is best effort.
 
 OpenRouter's catalog also contains image, audio, and video generators. The model fetch filters

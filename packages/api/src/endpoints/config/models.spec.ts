@@ -430,3 +430,54 @@ describe('createLoadConfigModels – Azure and Vertex models a profile merges', 
     expect((await load(merged))[EModelEndpoint.anthropic]).toEqual(['claude-opus-4-8']);
   });
 });
+
+describe('createLoadConfigModels – Surveil free-tier catalog visibility', () => {
+  const tiers = [
+    { tier: 1, endpoint: 'Max Model Selection', description: 'max' },
+    { tier: 2, endpoint: 'Commercial Privacy', description: 'commercial' },
+    { tier: 3, endpoint: 'Enterprise Vault', description: 'enterprise' },
+  ];
+  const config = {
+    surveil: { enabled: true, tiers },
+    endpoints: {
+      [EModelEndpoint.custom]: tiers.map(({ endpoint }) => ({
+        name: endpoint,
+        apiKey: 'server-key',
+        baseURL: 'https://openrouter.ai/api/v1',
+        models: { fetch: true },
+      })),
+    },
+  } as unknown as AppConfig;
+
+  const load = (
+    subscription: { status: 'active' } | null,
+    fetchModels = jest.fn().mockResolvedValue(['deepseek/deepseek-v4.1-flash']),
+  ) => ({
+    fetchModels,
+    result: createLoadConfigModels({
+      getAppConfig: jest.fn().mockResolvedValue(config),
+      getUserKeyValues: jest.fn(),
+      getSurveilSubscriptionByUser: jest.fn().mockResolvedValue(subscription),
+      fetchModels,
+    })({ user: { id: 'user-1' }, config } as unknown as ServerRequest),
+  });
+
+  it('only exposes the free catalog on Max Model Selection', async () => {
+    const { result, fetchModels } = load(null);
+    const models = await result;
+
+    expect(models['Max Model Selection']).toEqual(['deepseek/deepseek-v4.1-flash']);
+    expect(models['Commercial Privacy']).toEqual([]);
+    expect(models['Enterprise Vault']).toEqual([]);
+    expect(fetchModels).toHaveBeenCalledTimes(1);
+  });
+
+  it('exposes the paid catalog on every tier for an active subscriber', async () => {
+    const { result } = load({ status: 'active' });
+    const models = await result;
+
+    expect(models['Max Model Selection']).toEqual(['deepseek/deepseek-v4.1-flash']);
+    expect(models['Commercial Privacy']).toEqual(['deepseek/deepseek-v4.1-flash']);
+    expect(models['Enterprise Vault']).toEqual(['deepseek/deepseek-v4.1-flash']);
+  });
+});

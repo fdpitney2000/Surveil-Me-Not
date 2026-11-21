@@ -25,6 +25,7 @@ import { getScopedTokenConfigKey } from '~/endpoints/keys';
 import { resolveCustomEndpointParameters } from './config';
 import { getCustomEndpointConfig } from '~/app/config';
 import { resolveSurveilConfig } from '~/surveil/config';
+import { SurveilError, SurveilErrorCodes } from '~/surveil/errors';
 import {
   assertFreeTierAvailable,
   ensureFreeTierKey,
@@ -262,12 +263,25 @@ export async function initializeCustom(
   );
   const isSurveilTier =
     surveil.enabled && surveil.tiers.some((tier) => tier.endpoint === endpoint);
+  const surveilTier = isSurveilTier
+    ? surveil.tiers.find((tier) => tier.endpoint === endpoint)
+    : undefined;
   const paidAccess = isSurveilTier
     ? await hasPaidSurveilAccess(
         db as unknown as import('~/surveil/free-tier').SurveilAccessDb,
         user?.id,
       )
     : true;
+
+  /** Higher privacy tiers require a paid subscription; the subsidized free
+   *  catalog is only valid on Max Model Selection. */
+  if (user?.id && surveilTier && !paidAccess && surveilTier.tier !== 1) {
+    throw new SurveilError(
+      SurveilErrorCodes.NO_SUBSCRIPTION,
+      'This privacy tier requires a paid subscription.',
+      403,
+    );
+  }
 
   if (
     isSurveilTier &&

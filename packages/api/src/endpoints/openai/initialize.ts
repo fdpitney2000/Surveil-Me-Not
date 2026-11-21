@@ -15,6 +15,7 @@ import {
 } from '~/utils';
 import { resolveModelTransportTimeouts } from '~/agents/config';
 import { isSurveilTierEndpoint, resolveSurveilConfig } from '~/surveil/config';
+import { SurveilError, SurveilErrorCodes } from '~/surveil/errors';
 import {
   assertFreeTierAvailable,
   ensureFreeTierKey,
@@ -132,6 +133,20 @@ export async function initializeOpenAI(
         user?.id,
       )
     : true;
+  const surveilTier = tierEndpoint
+    ? surveilConfig.tiers.find((tier) => tier.endpoint === tierEndpoint)
+    : undefined;
+
+  /** Higher privacy tiers require a paid subscription; the subsidized free
+   *  catalog is only valid on Max Model Selection. */
+  if (user?.id && surveilTier && !paidAccess && surveilTier.tier !== 1) {
+    throw new SurveilError(
+      SurveilErrorCodes.NO_SUBSCRIPTION,
+      'This privacy tier requires a paid subscription.',
+      403,
+    );
+  }
+
   if (
     tierEndpoint &&
     user?.id &&

@@ -272,8 +272,17 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
       // different (potentially user-bound) headers don't reuse each other's
       // fetched model list within the same request.
       const tier = surveilConfig.tiers.find((candidate) => candidate.endpoint === name);
-      const freeCatalog =
-        !!tier && (subscriptionKnown ? !hasPaidAccess : isStoredFreeKey(userKeyMap.get(name)));
+      const freeAccess =
+        !!tier &&
+        (subscriptionKnown ? !hasPaidAccess : isStoredFreeKey(userKeyMap.get(name)));
+      const freeCatalog = freeAccess && tier?.tier === 1;
+      /** Free-tier keys only exist behind Max Model Selection. A subsidized model
+       *  cannot satisfy the higher-tier provider privacy guarantees, so never
+       *  advertise a paid catalog or the free catalog on those tiers. */
+      if (freeAccess && tier?.tier !== 1) {
+        modelsConfig[name] = [];
+        continue;
+      }
       const uniqueKey = `${BASE_URL}__${API_KEY}__${headersFingerprint(endpointHeaders)}__free=${freeCatalog}`;
 
       if (models?.fetch && !apiKeyIsUserProvided && !baseURLIsUserProvided) {
@@ -376,9 +385,10 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
           typeof m === 'string' ? m : m.name,
         );
         const tier = surveilConfig.tiers.find((candidate) => candidate.endpoint === name);
-        const freeCatalog =
+        const freeAccess =
           !!tier &&
           (subscriptionKnown ? !hasPaidAccess : isStoredFreeKey(userKeyMap.get(name)));
+        const freeCatalog = freeAccess && tier?.tier === 1;
         /**
          * Free variants are never advertised in Surveil tier pickers. The subsidized
          * free tier uses the policy-filtered paid catalog; paid tiers keep the paid
