@@ -119,7 +119,7 @@ function Header({
             <BookmarkMenu />
           </div>
         )}
-        {hasAccessToMultiConvo === true && (
+        {hasAccessToMultiConvo === true && interfaceConfig.multiConvo !== false && (
           <div className={cn('items-center', isSmallScreen ? 'hidden' : 'flex')}>
             <AddMultiConvo />
           </div>

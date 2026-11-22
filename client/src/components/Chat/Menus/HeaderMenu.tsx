@@ -67,7 +67,10 @@ export default function HeaderMenu({
   });
 
   const showBookmarks = hasAccessToBookmarks === true && bookmarks.show;
-  const showCompare = hasAccessToMultiConvo === true && multiConvo.show;
+  const showCompare =
+    hasAccessToMultiConvo === true &&
+    multiConvo.show &&
+    startupConfig?.interface?.multiConvo !== false;
   const showTemporary =
     (hasAccessToTemporaryChat === true || temporary.isEnforced) && temporary.show;
 

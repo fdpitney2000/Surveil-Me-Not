@@ -12,6 +12,8 @@ interface:
   # Consumer defaults: keep Parameters (web search on/off) but hide the more
   # advanced library/agent surfaces.
   parameters: true
+  presets: false
+  multiConvo: false
   bookmarks: false
   memories: false
   prompts: false
