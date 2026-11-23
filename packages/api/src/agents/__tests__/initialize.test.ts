@@ -247,6 +247,7 @@ function createMocks(overrides?: {
     updateFilesUsage: jest.fn().mockResolvedValue([]),
     getUserKey: jest.fn().mockResolvedValue('user-1'),
     getUserKeyValues: jest.fn().mockResolvedValue([]),
+    updateUserKey: jest.fn().mockResolvedValue(undefined),
     getToolFilesByIds: jest.fn().mockResolvedValue([]),
   };
 

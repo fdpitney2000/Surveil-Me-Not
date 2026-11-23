@@ -394,6 +394,7 @@ describe('enabled generic inference extensions', () => {
       db: {
         getUserKey: jest.fn().mockResolvedValue(''),
         getUserKeyValues: jest.fn().mockResolvedValue({}),
+        updateUserKey: jest.fn().mockResolvedValue(undefined),
       },
     });
     expect(result.llmConfig).toMatchObject({ modelKwargs: { include_reasoning: true } });
@@ -478,6 +479,7 @@ describe('production custom initialization owns the effective inference profile'
       const db = {
         getUserKey: jest.fn().mockResolvedValue(''),
         getUserKeyValues: jest.fn().mockResolvedValue({}),
+        updateUserKey: jest.fn().mockResolvedValue(undefined),
       };
       const result = await initializeCustom({
         runtime: { appConfig, requestBody: {} },

@@ -40,6 +40,16 @@ export interface EndpointDbMethods {
   getUserKey: GetUserKeyFunction;
   /** Get parsed key values object (used for apiKey + baseURL combinations) */
   getUserKeyValues: GetUserKeyValuesFunction;
+  /**
+   * Persist a managed key. Surveil's lazily provisioned free-tier key needs this method;
+   * passing only the read methods here makes the first free chat fail at storage time.
+   */
+  updateUserKey: (params: {
+    userId: string;
+    name: string;
+    value: string;
+    expiresAt?: Date | null;
+  }) => Promise<unknown>;
 }
 
 /** Transport-free state consumed while resolving provider credentials and configuration. */

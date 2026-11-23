@@ -84,6 +84,11 @@ export function resolveSurveilConfig(raw?: Partial<TSurveilConfig>): ResolvedSur
   const freeTierPinnedModel = process.env.SURVEIL_FREE_PINNED_MODEL?.trim();
   if (freeTierPinnedModel) overrides.freeTierPinnedModel = freeTierPinnedModel;
 
+  const testKeyLimitUsd = envNumber('SURVEIL_TEST_KEY_LIMIT_USD');
+  if (testKeyLimitUsd !== undefined && testKeyLimitUsd > 0) {
+    overrides.testKeyLimitUsd = testKeyLimitUsd;
+  }
+
   return { ...base, ...overrides, tiers: base.tiers };
 }
 

@@ -4522,6 +4522,12 @@ export const surveilConfigSchema = z
     freeTierPinnedModel: z.string().min(1).default('deepseek/deepseek-v4.1-flash'),
     /** Provision the per-user free key at registration instead of on first chat. */
     provisionFreeOnRegistration: z.boolean().default(true),
+    /**
+     * Test-only cap for OpenRouter keys provisioned by Stripe test-mode invoices. It never
+     * applies to live-mode events. Leave unset in production so the plan's net proceeds are
+     * used. Useful for small beta balances where several testers share one OpenRouter org.
+     */
+    testKeyLimitUsd: z.number().positive().max(2000).optional(),
     /** The three tier definitions, mapped to custom endpoints by name. */
     tiers: z.array(surveilTierSchema).default([
       {

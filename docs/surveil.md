@@ -30,6 +30,19 @@ OPENROUTER_FEE_PCT=5.5
 RETENTION_PCT=20
 ```
 
+For the ten-tester beta, cap keys created by Stripe **test-mode** invoices without changing
+the production plan math:
+
+```env
+SURVEIL_TEST_KEY_LIMIT_USD=1
+```
+
+This applies only when the Stripe event has `livemode: false`; live-mode invoices still get
+the plan's normal net proceeds. The subscription's credit grant is also set to the test cap,
+so the UI does not claim the full $50/$100/$200 balance. Remove the variable for production.
+For a `$1` test cap, also set `SURVEIL_LOW_BALANCE_USD=0.10`; otherwise the default `$5`
+low-balance threshold makes a test account look depleted immediately.
+
 Verify presence without printing values:
 
 ```

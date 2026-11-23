@@ -1069,7 +1069,11 @@ class AgentClient extends BaseClient {
           conversationId: this.conversationId,
           parentMessageId: this.parentMessageId,
         },
-        db: { getUserKey: db.getUserKey, getUserKeyValues: db.getUserKeyValues },
+        db: {
+          getUserKey: db.getUserKey,
+          getUserKeyValues: db.getUserKeyValues,
+          updateUserKey: db.updateUserKey,
+        },
       }).catch((error) => {
         /** Never cache a rejection: a transient credential read failure would
          *  otherwise disable labels for the rest of the response. */
@@ -1092,7 +1096,11 @@ class AgentClient extends BaseClient {
           conversationId: this.conversationId,
           parentMessageId: this.parentMessageId,
         },
-        db: { getUserKey: db.getUserKey, getUserKeyValues: db.getUserKeyValues },
+        db: {
+          getUserKey: db.getUserKey,
+          getUserKeyValues: db.getUserKeyValues,
+          updateUserKey: db.updateUserKey,
+        },
       }).catch((error) => {
         this.activityPhaseLabelLLMPromise = null;
         throw error;
@@ -1113,7 +1121,11 @@ class AgentClient extends BaseClient {
           conversationId: this.conversationId,
           parentMessageId: this.parentMessageId,
         },
-        db: { getUserKey: db.getUserKey, getUserKeyValues: db.getUserKeyValues },
+        db: {
+          getUserKey: db.getUserKey,
+          getUserKeyValues: db.getUserKeyValues,
+          updateUserKey: db.updateUserKey,
+        },
       }).catch((error) => {
         this.reasoningLabelLLMPromise = null;
         throw error;
@@ -3437,6 +3449,7 @@ class AgentClient extends BaseClient {
         getAccessibleMcpServerNames,
         updateFilesUsage: db.updateFilesUsage,
         getUserKeyValues: db.getUserKeyValues,
+        updateUserKey: db.updateUserKey,
         getToolFilesByIds: db.getToolFilesByIds,
         getCodeGeneratedFiles: db.getCodeGeneratedFiles,
         filterFilesByAgentAccess,
@@ -6206,6 +6219,7 @@ class AgentClient extends BaseClient {
       db: {
         getUserKey: db.getUserKey,
         getUserKeyValues: db.getUserKeyValues,
+        updateUserKey: db.updateUserKey,
       },
     });
 

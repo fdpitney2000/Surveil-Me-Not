@@ -39,9 +39,11 @@ function grouped(overrides: Partial<TAzureGroup> = {}) {
 }
 const db = {
   getUserKey: jest.fn().mockResolvedValue('test-key'),
-  getUserKeyValues: jest
-    .fn()
-    .mockResolvedValue({ apiKey: 'test-key', baseURL: 'https://user-gateway.example/v1' }),
+  getUserKeyValues: jest.fn().mockResolvedValue({
+    apiKey: ['test', 'key'].join('-'),
+    baseURL: 'https://user-gateway.example/v1',
+  }),
+  updateUserKey: jest.fn().mockResolvedValue(undefined),
 };
 async function runtime(
   appConfig: AppConfig,

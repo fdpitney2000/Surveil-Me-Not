@@ -15,6 +15,7 @@ describe('resolveSurveilConfig', () => {
     delete process.env.STRIPE_FEE_FIXED;
     delete process.env.OPENROUTER_FEE_PCT;
     delete process.env.SURVEIL_RECONCILE_INTERVAL_MS;
+    delete process.env.SURVEIL_TEST_KEY_LIMIT_USD;
   });
 
   it('applies schema defaults', () => {
@@ -25,7 +26,14 @@ describe('resolveSurveilConfig', () => {
     expect(config.stripeFeePct).toBe(2.9);
     expect(config.stripeFeeFixedUsd).toBe(0.3);
     expect(config.openrouterFeePct).toBe(5.5);
+    expect(config.testKeyLimitUsd).toBeUndefined();
     expect(config.tiers).toHaveLength(3);
+  });
+
+  it('overlays the test-mode key limit', () => {
+    process.env.SURVEIL_TEST_KEY_LIMIT_USD = '1';
+    const config = resolveSurveilConfig({});
+    expect(config.testKeyLimitUsd).toBe(1);
   });
 
   it('overlays fee env overrides', () => {

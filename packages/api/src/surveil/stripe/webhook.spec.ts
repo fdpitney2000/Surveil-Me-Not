@@ -76,10 +76,14 @@ function invoiceEvent(overrides: Record<string, unknown> = {}): Stripe.Event {
   } as unknown as Stripe.Event;
 }
 
-function makeDeps(db: SurveilWebhookDb, stripe: Stripe): StripeWebhookDeps {
+function makeDeps(
+  db: SurveilWebhookDb,
+  stripe: Stripe,
+  config = resolveSurveilConfig({ enabled: true, graceDays: 3 }),
+): StripeWebhookDeps {
   return {
     db,
-    config: resolveSurveilConfig({ enabled: true, graceDays: 3 }),
+    config,
     stripe,
     provisionUser: jest.fn(async () => {}),
     disableUserKeys: jest.fn(async () => {}),
@@ -110,6 +114,43 @@ describe('applyStripeEvent – invoice.paid', () => {
       expiresAt: new Date(2000 * 1000),
       rotate: true,
     });
+  });
+
+  it('caps test-mode keys without changing live-mode plan math', async () => {
+    const { db, periods, subs } = makeDb();
+    const deps = makeDeps(
+      db,
+      makeStripe(),
+      resolveSurveilConfig({ enabled: true, testKeyLimitUsd: 1 }),
+    );
+    const testEvent = invoiceEvent();
+    testEvent.livemode = false;
+
+    const result = await applyStripeEvent({ event: testEvent, deps });
+
+    expect(result.handled).toBe(true);
+    expect(periods[0].grantMicroUsd).toBe(1_000_000);
+    expect(subs.get('u1')?.grantMicroUsd).toBe(1_000_000);
+    expect(deps.provisionUser).toHaveBeenCalledWith('u1', {
+      keyLimitMicroUsd: 1_000_000,
+      expiresAt: new Date(2000 * 1000),
+      rotate: true,
+    });
+  });
+
+  it('ignores the test cap for live-mode invoices', async () => {
+    const { db, periods } = makeDb();
+    const deps = makeDeps(
+      db,
+      makeStripe(),
+      resolveSurveilConfig({ enabled: true, testKeyLimitUsd: 1 }),
+    );
+    const liveEvent = invoiceEvent();
+    liveEvent.livemode = true;
+
+    await applyStripeEvent({ event: liveEvent, deps });
+
+    expect(periods[0].grantMicroUsd).toBe(71_300_000);
   });
 
   it('takes the renewal date from the invoice line period (dahlia API shape)', async () => {

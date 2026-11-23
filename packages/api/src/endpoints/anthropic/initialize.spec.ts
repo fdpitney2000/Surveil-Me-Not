@@ -31,6 +31,7 @@ function createParams(
     db: {
       getUserKey: jest.fn(),
       getUserKeyValues: jest.fn(),
+      updateUserKey: jest.fn(),
     },
   };
 

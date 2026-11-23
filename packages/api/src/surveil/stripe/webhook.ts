@@ -2,13 +2,13 @@ import type { ISurveilSubscription } from '@librechat/data-schemas';
 import type Stripe from 'stripe';
 import type { ResolvedSurveilConfig } from '../config';
 import type { SurveilKeyStore } from '../provision';
-import { resolveSurveilConfig } from '../config';
 import { provisionUserKey, setUserKeysDisabled } from '../provision';
 import { createOpenRouterClientFromEnv } from '../openrouter/client';
 import { createStripeClient, resolveWebhookSecret } from './client';
 import { SurveilError, SurveilErrorCodes } from '../errors';
+import { netProceedsMicro, usdToMicro } from '../money';
+import { resolveSurveilConfig } from '../config';
 import { planForPriceId } from '../plans';
-import { netProceedsMicro } from '../money';
 
 /** The database methods the webhook needs (a subset of the aggregated methods). */
 export interface SurveilWebhookDb extends SurveilKeyStore {
@@ -251,13 +251,22 @@ export async function applyStripeEvent(options: {
         stripeFeeFixedUsd: deps.config.stripeFeeFixedUsd,
         openrouterFeePct: deps.config.openrouterFeePct,
       });
+      /**
+       * Stripe test-mode checkouts share the production OpenRouter organization. During the
+       * beta, cap those keys so ten testers cannot drain the organization balance with one
+       * large plan. Live-mode invoices always use the real plan math.
+       */
+      const effectiveKeyLimitMicroUsd =
+        event.livemode === false && deps.config.testKeyLimitUsd != null
+          ? usdToMicro(deps.config.testKeyLimitUsd)
+          : keyLimitMicroUsd;
       const periodEnd = context.periodEnd ?? nextMonthlyAnniversary(now);
 
       const { created } = await deps.db.createSurveilPeriod({
         userId,
         invoiceId: invoice.id,
         plan: plan.key,
-        grantMicroUsd: keyLimitMicroUsd,
+        grantMicroUsd: effectiveKeyLimitMicroUsd,
         snapshotUsageMicro: 0,
         periodStart: now,
         periodEnd,
@@ -277,18 +286,18 @@ export async function applyStripeEvent(options: {
             ...(context.subscriptionId ? { stripeSubscriptionId: context.subscriptionId } : {}),
             periodStart: now,
             renewsAt: periodEnd,
-            grantMicroUsd: keyLimitMicroUsd,
+            grantMicroUsd: effectiveKeyLimitMicroUsd,
             snapshotUsageMicro: 0,
             usageMicro: 0,
             keyExpiresAt: periodEnd,
-            keyLimitMicroUsd,
+            keyLimitMicroUsd: effectiveKeyLimitMicroUsd,
             lastEventCreatedAt: event.created,
           },
         );
       }
 
       await deps.provisionUser(userId, {
-        keyLimitMicroUsd,
+        keyLimitMicroUsd: effectiveKeyLimitMicroUsd,
         expiresAt: periodEnd,
         rotate: created,
       });
