@@ -11,9 +11,13 @@ import type {
   TConversation,
   TPreset,
 } from 'librechat-data-provider';
-import { getDefaultEndpoint, buildDefaultConvo } from '~/utils';
+import {
+  getPreferredFreeModel,
+  isSurveilTierEndpoint,
+  applySurveilReasoningDefault,
+} from '~/utils/surveilModelDefaults';
 import { useGetEndpointsQuery, useGetStartupConfig, useSurveilCredits } from '~/data-provider';
-import { getPreferredFreeModel, isSurveilTierEndpoint } from '~/utils/surveilModelDefaults';
+import { getDefaultEndpoint, buildDefaultConvo } from '~/utils';
 
 type TDefaultConvo = {
   conversation: Partial<TConversation>;
@@ -67,6 +71,9 @@ const useDefaultConvo = () => {
         preferredModel,
       });
 
+      /** The pinned DeepSeek model thinks by default; new Surveil chats open without thinking. */
+      applySurveilReasoningDefault(defaultConvo);
+
       /** Web search is on for new conversations unless the preset/previous state
        *  explicitly turned it off. The Parameters side panel reflects this value. */
       if (startupConfig?.interface?.webSearch === true && defaultConvo.web_search == null) {
@@ -89,7 +96,13 @@ const useDefaultConvo = () => {
 
       return defaultConvo;
     },
-    [endpointsConfig, modelsConfig, startupConfig?.surveil, surveilCredits],
+    [
+      endpointsConfig,
+      modelsConfig,
+      startupConfig?.surveil,
+      startupConfig?.interface?.webSearch,
+      surveilCredits,
+    ],
   );
 
   return getDefaultConversation;

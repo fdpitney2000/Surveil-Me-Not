@@ -53,12 +53,16 @@ import {
   setDocumentTitle,
 } from '~/utils';
 import {
+  getPreferredFreeModel,
+  isSurveilTierEndpoint,
+  applySurveilReasoningDefault,
+} from '~/utils/surveilModelDefaults';
+import {
   useDeleteFilesMutation,
   useGetEndpointsQuery,
   useGetStartupConfig,
   useSurveilCredits,
 } from '~/data-provider';
-import { getPreferredFreeModel, isSurveilTierEndpoint } from '~/utils/surveilModelDefaults';
 import { supersedeNavigation } from './Conversations/useNavigateToConvo';
 import useGetConversation from './Conversations/useGetConversation';
 import useAssistantListMap from './Assistants/useAssistantListMap';
@@ -246,8 +250,7 @@ const useNewConvo = (index = 0) => {
             defaultEndpoint,
             startupConfig?.surveil?.tiers,
           );
-          const hasNoSubscription =
-            surveilCredits == null || surveilCredits.status === 'none';
+          const hasNoSubscription = surveilCredits == null || surveilCredits.status === 'none';
           const preferredModel =
             isSurveilTier && hasNoSubscription ? getPreferredFreeModel(models) : undefined;
           conversation = buildDefaultConvo({
@@ -259,12 +262,12 @@ const useNewConvo = (index = 0) => {
             preferredModel,
           });
 
+          /** The pinned DeepSeek model thinks by default; new Surveil chats open without thinking. */
+          applySurveilReasoningDefault(conversation);
+
           /** Match the Parameters panel's default: native web search is on for new
            *  conversations unless a preset or previous setup explicitly disabled it. */
-          if (
-            startupConfig?.interface?.webSearch === true &&
-            conversation.web_search == null
-          ) {
+          if (startupConfig?.interface?.webSearch === true && conversation.web_search == null) {
             conversation.web_search = true;
           }
 

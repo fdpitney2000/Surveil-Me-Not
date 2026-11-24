@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Button, Spinner, ThemeSelector } from '@librechat/client';
 import type { EmailChangeErrorCode } from 'librechat-data-provider';
 import {
@@ -12,11 +12,9 @@ import { getResponseErrorCode } from '~/utils';
 import { useLocalize } from '~/hooks';
 
 function RequestPasswordReset() {
-  const navigate = useNavigate();
   const localize = useLocalize();
   const [params] = useSearchParams();
 
-  const [countdown, setCountdown] = useState<number>(0);
   const [headerText, setHeaderText] = useState<string>('');
   const [showResendLink, setShowResendLink] = useState<boolean>(false);
   const [verificationStatus, setVerificationStatus] = useState<boolean>(false);
@@ -35,25 +33,10 @@ function RequestPasswordReset() {
     };
   }, [startupConfig?.appTitle]);
 
-  const countdownRedirect = useCallback(() => {
-    setCountdown(3);
-    const timer = setInterval(() => {
-      setCountdown((prevCountdown) => {
-        if (prevCountdown <= 1) {
-          clearInterval(timer);
-          navigate('/c/new', { replace: true });
-          return 0;
-        }
-        return prevCountdown - 1;
-      });
-    }, 1000);
-  }, [navigate]);
-
   const verifyEmailMutation = useVerifyEmailMutation({
     onSuccess: () => {
       setHeaderText(localize('com_auth_email_verification_success') + ' 🎉');
       setVerificationStatus(true);
-      countdownRedirect();
     },
     onError: (_error: unknown) => {
       setHeaderText(localize('com_auth_email_verification_failed') + ' 😢');
@@ -66,7 +49,6 @@ function RequestPasswordReset() {
     onSuccess: () => {
       setHeaderText(localize('com_auth_email_change_success') + ' 🎉');
       setVerificationStatus(true);
-      countdownRedirect();
     },
     onError: (error) => {
       const code = getResponseErrorCode<EmailChangeErrorCode>(error);
@@ -83,7 +65,6 @@ function RequestPasswordReset() {
   const resendEmailMutation = useResendVerificationEmail({
     onSuccess: () => {
       setHeaderText(localize('com_auth_email_resent_success') + ' 📧');
-      countdownRedirect();
     },
     onError: () => {
       setHeaderText(localize('com_auth_email_resent_failed') + ' 😢');
@@ -157,12 +138,12 @@ function RequestPasswordReset() {
             <Spinner className="h-8 w-8" />
           </div>
         )}
-        {verificationStatus && countdown > 0 && (
+        {verificationStatus && !showResendLink && (
           <p className="text-text-secondary text-center text-lg">
-            {localize('com_auth_email_verification_redirecting', { 0: countdown.toString() })}
+            {localize('com_auth_email_verification_close_window')}
           </p>
         )}
-        {verificationStatus && showResendLink && countdown === 0 && (
+        {verificationStatus && showResendLink && (
           <p className="text-text-secondary text-center text-lg">
             {localize('com_auth_email_verification_resend_prompt')}
             <Button

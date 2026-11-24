@@ -52,6 +52,14 @@ const Registration: React.FC = () => {
     },
     onSuccess: () => {
       setIsSubmitting(false);
+      /**
+       * With email verification enabled, leave the registration tab on its success message.
+       * The verification link opens in a separate tab; redirecting both tabs would race the
+       * verification and can land an older session in the app.
+       */
+      if (startupConfig?.emailEnabled === true) {
+        return;
+      }
       setCountdown(3);
       const timer = setInterval(() => {
         setCountdown((prevCountdown) => {
@@ -132,18 +140,25 @@ const Registration: React.FC = () => {
           {localize('com_auth_error_create')} {errorMessage}
         </ErrorMessage>
       )}
-      {registerUser.isSuccess && countdown > 0 && (
+      {registerUser.isSuccess && (
         <div
           className="border-status-success-border bg-status-success-subtle text-text-secondary rounded-md border px-3 py-2 text-sm"
           role="alert"
         >
-          {localize(
-            startupConfig?.emailEnabled
-              ? 'com_auth_registration_success_generic'
-              : 'com_auth_registration_success_insecure',
-          ) +
-            ' ' +
-            localize('com_auth_email_verification_redirecting', { 0: countdown.toString() })}
+          {startupConfig?.emailEnabled ? (
+            <>
+              <p>{localize('com_auth_registration_success_generic')}</p>
+              <p className="mt-1">{localize('com_auth_registration_success_close_window')}</p>
+            </>
+          ) : (
+            <>
+              {localize('com_auth_registration_success_insecure')}{' '}
+              {countdown > 0 &&
+                localize('com_auth_email_verification_redirecting', {
+                  0: countdown.toString(),
+                })}
+            </>
+          )}
         </div>
       )}
       {!startupConfigError && !isFetching && (
