@@ -804,6 +804,7 @@ const executeResponse = async (envelope, { req, res }) => {
         getAccessibleMcpServerNames,
         updateFilesUsage: db.updateFilesUsage,
         getUserKeyValues: db.getUserKeyValues,
+        getSurveilSubscriptionByUser: db.getSurveilSubscriptionByUser,
         updateUserKey: db.updateUserKey,
         getUserCodeFiles: db.getUserCodeFiles,
         getDeferredProvisionFiles: db.getDeferredProvisionFiles,

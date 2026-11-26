@@ -1072,6 +1072,7 @@ class AgentClient extends BaseClient {
         db: {
           getUserKey: db.getUserKey,
           getUserKeyValues: db.getUserKeyValues,
+          getSurveilSubscriptionByUser: db.getSurveilSubscriptionByUser,
           updateUserKey: db.updateUserKey,
         },
       }).catch((error) => {
@@ -1099,6 +1100,7 @@ class AgentClient extends BaseClient {
         db: {
           getUserKey: db.getUserKey,
           getUserKeyValues: db.getUserKeyValues,
+          getSurveilSubscriptionByUser: db.getSurveilSubscriptionByUser,
           updateUserKey: db.updateUserKey,
         },
       }).catch((error) => {
@@ -1124,6 +1126,7 @@ class AgentClient extends BaseClient {
         db: {
           getUserKey: db.getUserKey,
           getUserKeyValues: db.getUserKeyValues,
+          getSurveilSubscriptionByUser: db.getSurveilSubscriptionByUser,
           updateUserKey: db.updateUserKey,
         },
       }).catch((error) => {
@@ -3449,6 +3452,7 @@ class AgentClient extends BaseClient {
         getAccessibleMcpServerNames,
         updateFilesUsage: db.updateFilesUsage,
         getUserKeyValues: db.getUserKeyValues,
+        getSurveilSubscriptionByUser: db.getSurveilSubscriptionByUser,
         updateUserKey: db.updateUserKey,
         getToolFilesByIds: db.getToolFilesByIds,
         getCodeGeneratedFiles: db.getCodeGeneratedFiles,
@@ -6219,6 +6223,7 @@ class AgentClient extends BaseClient {
       db: {
         getUserKey: db.getUserKey,
         getUserKeyValues: db.getUserKeyValues,
+        getSurveilSubscriptionByUser: db.getSurveilSubscriptionByUser,
         updateUserKey: db.updateUserKey,
       },
     });

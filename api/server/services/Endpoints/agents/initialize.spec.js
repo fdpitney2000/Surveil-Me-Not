@@ -502,6 +502,20 @@ describe('initializeClient — processAgent ACL gate', () => {
     );
   });
 
+  it('forwards the Surveil subscription lookup into provider initialization', async () => {
+    mockInitializeAgent.mockResolvedValue(makePrimaryConfig([]));
+
+    await initializeClient({
+      req: makeReq(),
+      res: {},
+      signal: new AbortController().signal,
+      endpointOption: makeEndpointOption(),
+    });
+
+    const dbMethods = mockInitializeAgent.mock.calls[0][1];
+    expect(dbMethods.getSurveilSubscriptionByUser).toEqual(expect.any(Function));
+  });
+
   it('forwards recordLinkedPromptUsage: false for every agent initialized on the resume path', async () => {
     mockInitializeAgent.mockResolvedValue(makePrimaryConfig([]));
 
