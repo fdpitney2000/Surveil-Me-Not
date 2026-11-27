@@ -2,7 +2,11 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { PermissionTypes, Permissions } from 'librechat-data-provider';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import type t from 'librechat-data-provider';
-import { useGetEndpointsQuery, useGetAgentCategoriesQuery } from '~/data-provider';
+import {
+  useGetEndpointsQuery,
+  useGetAgentCategoriesQuery,
+  useGetStartupConfig,
+} from '~/data-provider';
 import SortDropdown, { SORT_OPTIONS, DEFAULT_SORT_OPTION } from './SortDropdown';
 import { useDocumentTitle, useHasAccess, useLocalize } from '~/hooks';
 import MarketplaceAdminSettings from './MarketplaceAdminSettings';
@@ -34,7 +38,10 @@ const AgentMarketplace: React.FC<AgentMarketplaceProps> = ({ className = '' }) =
   }, [searchParams]);
   const mine: 0 | 1 = searchParams.get('mine') === '1' ? 1 : 0;
 
-  useDocumentTitle(`${localize('com_agents_marketplace')} | LibreChat`);
+  const { data: startupConfig } = useGetStartupConfig();
+  useDocumentTitle(
+    `${localize('com_agents_marketplace')} | ${startupConfig?.appTitle ?? 'Surveil Me Not'}`,
+  );
   useGetEndpointsQuery();
   const categoriesQuery = useGetAgentCategoriesQuery({
     staleTime: 1000 * 60 * 15,

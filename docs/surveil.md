@@ -278,7 +278,7 @@ Do these once per Stripe account (test mode now, live mode at launch):
    customer, then advance to trigger `invoice.paid` with
    `billing_reason=subscription_cycle`.
 4. Prices already exist and match the configured IDs ($50/$100/$200 USD monthly in
-   the "luna helper 50-100-200" sandbox — verified via CLI 2026-11-02). `STRIPE_SECRET_KEY`
+   the "Surveil Me Not - Sandbox" sandbox — verified via CLI 2026-11-02). `STRIPE_SECRET_KEY`
    must belong to the same account as the prices or checkout fails with
    "No such price".
 
